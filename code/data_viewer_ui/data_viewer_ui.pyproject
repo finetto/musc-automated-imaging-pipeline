@@ -1,0 +1,12 @@
+{
+    "files": [
+        "data_viewer_ui.py",
+        "edit_session_dialog.py",
+        "edit_session_dialog.ui",
+        "edit_participant_dialog.py",
+        "edit_participant_dialog.ui",
+        "reprocess_session_dialog.py",
+        "reprocess_session_dialog.ui",
+        "data_viewer_ui.ui"
+    ]
+}
