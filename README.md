@@ -293,10 +293,10 @@ Here you can enter a new de-identified ID, generate a random de-identified ID by
 
 ### MRI sessions
 To view all available MRI sessions, navigate to the "MRI" tab. This will show the date and time each session was recorded, the session description, the ID and de-identified ID of the associated participant, the associated session ID, and some flags indicating the validation and processing state of each session.
-![Screenshot of the MRI Session view.](/docs/images/mri_sessions_1.png).
+![Screenshot of the MRI Session view.](/docs/images/mri_sessions_1.png)
 
 If a session has not yet been fully processed, or if the associated participant and session IDs still need to be validated, you will have the option to _Edit_ or _Validate_ the session. If the session has been fully processed, then this option will not be available.
-![Screenshot of the MRI Edit Session dialog.](/docs/images/mri_sessions_2.png).
+![Screenshot of the MRI Edit Session dialog.](/docs/images/mri_sessions_2.png)
 
 The Session Edit/Validate dialog allows to select the subject ID of the participant associated with this session. You can also create a new participant by clicking "New". The de-identified ID of the associated participant can be edited either by entering a new ID in the textbox, or by generating a new random ID with the "Generate" button. You can also use this dialog to change the group assignment of the participant.\
 The dialog also allows to change the ID of the associated session. Finally, the "Skip processing" checkbox can be used to skip any future processing steps of this session. If selected, all associated data will be removed from the temporary work directory. You can always uncheck this option at a later stage.
@@ -305,6 +305,6 @@ Each session can also be reprocessed at any point if there are issues with any o
 
 ### MRI series
 All series collected for a session can be viewed by going to the "Series" tab. The list to the left allows to select the session, while the table to the right shows information about all series in that session.
-![Screenshot of the MRI Series view.](/docs/images/mri_series_1.png).
+![Screenshot of the MRI Series view.](/docs/images/mri_series_1.png)
 
 For each series, the table will show the acquisition date ant time, the series description and the number of files. It will also show if all files are valid (i.e. available and matching the CBI session summary) and if the sidecar file matches any of the criteria specified in the dcm2bids configuration file. The "Duplicates" column will indicate wheter there are any duplicate series that match the same dcm2bids criteria. If so, the pipeline will choose the most recent series by default and skip all other duplicates. The "Skip" column indicates wheter a series will be skipped (i.e. not processed), which is usually the case when the series has invalid data or when it has a more recent duplicate. Finally, the "Data Converted" column indicates if the data was successfully converted. When a session has not yet been fully processed, there will be the option to include or exclude it from processing. If you decide to include a series that has duplicates, all other duplicates will be automatically excluded.
