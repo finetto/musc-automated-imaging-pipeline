@@ -22,6 +22,7 @@ sudo apt update
 sudo apt install cmake gcc g++ wget\
   python3 python3-pip \
   dc mesa-utils gedit pulseaudio libquadmath0 libgtk2.0-0 firefox libgomp1 \
+  libxcb-cursor-dev \
   -y
 echo ""
 
