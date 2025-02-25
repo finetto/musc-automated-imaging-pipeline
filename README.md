@@ -7,7 +7,7 @@ A pipeline for processing research imaging data collected at the Medical Univers
 - Notify user via e-mail and ask to validate the extracted information
 - Validate all downloaded files
 - Organize files following BIDS format
-- Deidentify files (replace subject ID, deface images, etc.)
+- De-identify files (replace subject ID, deface images, etc.)
 - Upload processed data to Box
 
 Currently, the pipeline supports MR data recorded at CBI.
