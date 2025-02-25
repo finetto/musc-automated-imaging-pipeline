@@ -497,7 +497,7 @@ class data_viewer_ui(QWidget):
         session = db.get_mri_session_data(id=selected_session_id, return_only_first=True)
 
         # get series for this session
-        session_series = db.get_mri_series_data(session_id=selected_session_id)
+        session_series = db.get_mri_series_data(session_id=selected_session_id, sort_column="series_recorded_dt", sort_dir="descending")
         
         # close database
         db.close()

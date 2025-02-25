@@ -179,7 +179,7 @@ for data_file in cbi_data["data_files"]:
 db.commit()
 
 # look for MRI sessions with missing summary files and find new matches
-sessions_with_missing_summary = db.find_mri_sessions_with_missing_summary()
+sessions_with_missing_summary = db.find_mri_sessions_with_missing_summary(exclude_skipped=True)
 if sessions_with_missing_summary == -1: terminate_after_error()
 for session in sessions_with_missing_summary:
     # extract data from query
@@ -222,7 +222,7 @@ db.commit()
 
 
 # download missing data files
-sessions_requiring_data_download = db.find_mri_sessions_requiring_data_download()
+sessions_requiring_data_download = db.find_mri_sessions_requiring_data_download(exclude_skipped=True)
 if sessions_requiring_data_download == -1: terminate_after_error()
 for session in sessions_requiring_data_download:
     # extract data from query
@@ -255,7 +255,7 @@ for session in sessions_requiring_data_download:
 
 
 # download missing summary files
-sessions_requiring_summary_download = db.find_mri_sessions_requiring_summary_download()
+sessions_requiring_summary_download = db.find_mri_sessions_requiring_summary_download(exclude_skipped=True)
 if sessions_requiring_summary_download == -1: terminate_after_error()
 for session in sessions_requiring_summary_download:
     # extract data from query

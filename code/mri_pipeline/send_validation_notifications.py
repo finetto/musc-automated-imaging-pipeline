@@ -95,7 +95,7 @@ sessions_receiving_notification = []
 n_first_notifications = 0
 first_notification_text = ""
 
-sessions_requiring_first_notification = db.find_mri_sessions_requiring_first_notification()
+sessions_requiring_first_notification = db.find_mri_sessions_requiring_first_notification(exclude_skipped=True)
 if sessions_requiring_first_notification == -1: terminate_after_error()
 
 for session in sessions_requiring_first_notification:
@@ -131,7 +131,7 @@ reminder_notification_text = ""
 
 if settings_notification["mri_data_validation"]["send_reminder"] and (settings_notification["mri_data_validation"]["reminder_interval_h"] > 0):
 
-    sessions_requiring_reminder_notification = db.find_mri_sessions_requiring_reminder_notification()
+    sessions_requiring_reminder_notification = db.find_mri_sessions_requiring_reminder_notification(exclude_skipped=True)
     if sessions_requiring_reminder_notification == -1: terminate_after_error()
 
     for session in sessions_requiring_reminder_notification:

@@ -317,7 +317,7 @@ class db:
         return 1
     
     # get records by multiple keys
-    def get_records_by_keys(self, table_name, keys):
+    def get_records_by_keys(self, table_name, keys, sort_column=None, sort_dir=None):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -332,8 +332,18 @@ class db:
             key_values.append(value)
         conditions = conditions[:-5]
         
-        # get data
-        qry_res = self.execute("SELECT * FROM " + table_name + " WHERE " + conditions + ";",list(key_values))
+        # get data and sort if requested
+        if sort_column == None:
+            qry_res = self.execute("SELECT * FROM " + table_name + " WHERE " + conditions + ";",list(key_values))
+        else:
+            if (sort_dir != None) and any(item.lower() == sort_dir.lower() for item in ("ASC", "ascending", "+")):
+                direction = "ASC"
+            elif (sort_dir != None) and any(item.lower() == sort_dir.lower() for item in ("DESC", "descending", "-")):
+                direction = "DESC"
+            else:
+                direction = "ASC"
+
+            qry_res = self.execute("SELECT * FROM " + table_name + " WHERE " + conditions + " ORDER BY " + sort_column + " " + direction + ";",list(key_values))   
         if qry_res == -1: 
             print("ERROR: Could not get matching records from table '" + table_name + "'.")
             return -1
@@ -657,7 +667,7 @@ class db:
         return res
         
     # get participant data
-    def get_participant_data(self, id=None, study_id=None, deidentified_id=None, return_only_first=False):
+    def get_participant_data(self, id=None, study_id=None, deidentified_id=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
@@ -666,7 +676,7 @@ class db:
         if len(keys)<1:
             res = -1
         else:
-            res = self.get_records_by_keys("participants", keys)
+            res = self.get_records_by_keys("participants", keys, sort_column, sort_dir)
 
         if (res!=None) and (res != -1) and return_only_first:
             if len(res)>0:
@@ -737,7 +747,7 @@ class db:
         return res
     
     # get MRI session data
-    def get_mri_session_data(self, id=None, data_file=None, participant_id=None, return_only_first=False):
+    def get_mri_session_data(self, id=None, data_file=None, participant_id=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
@@ -746,7 +756,7 @@ class db:
         if len(keys)<1:
             res = -1
         else:
-            res = self.get_records_by_keys("mri_sessions", keys)
+            res = self.get_records_by_keys("mri_sessions", keys, sort_column, sort_dir)
 
         if (res!=None) and (res != -1) and return_only_first:
             if len(res)>0:
@@ -803,7 +813,7 @@ class db:
         return res 
     
     # get MRI scan data
-    def get_mri_series_data(self, id=None, session_id=None, participant_id=None, series_number=None, return_only_first=False):
+    def get_mri_series_data(self, id=None, session_id=None, participant_id=None, series_number=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
@@ -812,7 +822,7 @@ class db:
         if len(keys)<1:
             res = -1
         else:
-            res = self.get_records_by_keys("mri_series", keys)
+            res = self.get_records_by_keys("mri_series", keys, sort_column, sort_dir)
 
         if (res!=None) and (res != -1) and return_only_first:
             if len(res)>0:
@@ -858,7 +868,7 @@ class db:
         return res  
 
     # find mri sessions with missing summary file
-    def find_mri_sessions_with_missing_summary(self):
+    def find_mri_sessions_with_missing_summary(self, exclude_skipped = False):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -868,7 +878,10 @@ class db:
         # get data
         column_names = ["id", "data_file", "data_recorded_date", "data_recorded_time"]
         column_list = ", ".join(column_names)
-        qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (summary_file IS NULL) OR (summary_file == \"\");")
+        if exclude_skipped:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE ((summary_file IS NULL) OR (summary_file == \"\")) AND (skip_processing IS NOT 1);")
+        else:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (summary_file IS NULL) OR (summary_file == \"\");")
         if qry_res == -1: 
             print("ERROR: Could not get MRI sessions with missing summary from database.")
             return -1
@@ -884,7 +897,7 @@ class db:
         return res   
     
     # find mri sessions for which data still needs to be downloaded
-    def find_mri_sessions_requiring_data_download(self):
+    def find_mri_sessions_requiring_data_download(self, exclude_skipped = False):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -894,7 +907,10 @@ class db:
         # get data
         column_names = ["id", "data_file"]
         column_list = ", ".join(column_names)
-        qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE data_downloaded_dt IS NULL;")
+        if exclude_skipped:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (data_downloaded_dt IS NULL) AND (skip_processing IS NOT 1);")
+        else:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE data_downloaded_dt IS NULL;")
         if qry_res == -1: 
             print("ERROR: Could not get MRI sessions with missing summary from database.")
             return -1
@@ -910,7 +926,7 @@ class db:
         return res  
     
     # find mri sessions for which summary files still needs to be downloaded
-    def find_mri_sessions_requiring_summary_download(self):
+    def find_mri_sessions_requiring_summary_download(self, exclude_skipped = False):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -920,7 +936,10 @@ class db:
         # get data
         column_names = ["id", "data_file", "summary_file"]
         column_list = ", ".join(column_names)
-        qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (summary_file IS NOT NULL) AND (summary_file != \"\") AND (summary_downloaded_dt IS NULL);")
+        if exclude_skipped:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (summary_file IS NOT NULL) AND (summary_file != \"\") AND (summary_downloaded_dt IS NULL) AND (skip_processing IS NOT 1);")
+        else:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (summary_file IS NOT NULL) AND (summary_file != \"\") AND (summary_downloaded_dt IS NULL);")
         if qry_res == -1: 
             print("ERROR: Could not get MRI sessions with missing summary from database.")
             return -1
@@ -936,7 +955,7 @@ class db:
         return res 
     
     # find all mri sessions for which no notification has been sent
-    def find_mri_sessions_requiring_first_notification(self):
+    def find_mri_sessions_requiring_first_notification(self, exclude_skipped = False):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -946,7 +965,10 @@ class db:
         # get data
         column_names = ["id", "description", "data_recorded_date", "data_recorded_time"]
         column_list = ", ".join(column_names)
-        qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE notification_sent_dt IS NULL;")
+        if exclude_skipped:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (notification_sent_dt IS NULL) AND (skip_processing IS NOT 1);")
+        else:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE notification_sent_dt IS NULL;")
         if qry_res == -1: 
             print("ERROR: Could not get MRI sessions requirig first notification from database.")
             return -1
@@ -962,7 +984,7 @@ class db:
         return res  
     
     # find all mri sessions for which a notification has been sent, but that have not been validated yet
-    def find_mri_sessions_requiring_reminder_notification(self):
+    def find_mri_sessions_requiring_reminder_notification(self, exclude_skipped = False):
 
         # make sure connection is open
         if (self._connection == None) or (self._cursor == None):
@@ -972,7 +994,10 @@ class db:
         # get data
         column_names = ["id", "description", "data_recorded_date", "data_recorded_time", "notification_sent_dt"]
         column_list = ", ".join(column_names)
-        qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (notification_sent_dt IS NOT NULL) AND ((study_id_validated_dt IS NULL) OR (session_id_validated_dt IS NULL));")
+        if exclude_skipped:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (notification_sent_dt IS NOT NULL) AND ((study_id_validated_dt IS NULL) OR (session_id_validated_dt IS NULL)) AND (skip_processing IS NOT 1);")
+        else:
+            qry_res = self.execute("SELECT " + column_list + " FROM mri_sessions WHERE (notification_sent_dt IS NOT NULL) AND ((study_id_validated_dt IS NULL) OR (session_id_validated_dt IS NULL));")
         if qry_res == -1: 
             print("ERROR: Could not get MRI sessions requirig reminder notification from database.")
             return -1

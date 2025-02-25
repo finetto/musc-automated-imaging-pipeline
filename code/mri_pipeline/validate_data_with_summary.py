@@ -180,13 +180,22 @@ for session in sessions_requiring_validation:
 
         # find matches
         matching_series_info = list(filter(lambda series_info:series_info["series_number"]==series_number, session_summary["series_info"]))
+        
         matching_series = db.get_mri_series_data(session_id=session_id, series_number=series_number, return_only_first=True)
+        if matching_series==-1:
+            errors.append({"series_number": series_number,
+                        "message": "Could not query database for matching series."})
+            continue
+
+        # check if there is neither a matching series info nor a matching series (sometimes series numbers are skipped)
+        if ((matching_series)==None) and len(matching_series_info)<1:
+            continue
 
         #initialize errors
         errors_i = ""
 
         # make sure we found at least one matching series in database
-        if (matching_series)==None or (matching_series==-1):
+        if (matching_series)==None:
             errors.append({"series_number": series_number,
                         "message": "No matching series found in database."})
             continue
