@@ -671,7 +671,7 @@ class db:
 
         # get input arguments
         args = locals()
-        keys = self.remove_keys_from_dict(args, ("self", "return_only_first"))
+        keys = self.remove_keys_from_dict(args, ("self", "return_only_first", "sort_column", "sort_dir"))
 
         if len(keys)<1:
             res = -1
@@ -751,7 +751,7 @@ class db:
 
         # get input arguments
         args = locals()
-        keys = self.remove_keys_from_dict(args, ("self", "return_only_first"))
+        keys = self.remove_keys_from_dict(args, ("self", "return_only_first", "sort_column", "sort_dir"))
 
         if len(keys)<1:
             res = -1
@@ -817,7 +817,7 @@ class db:
 
         # get input arguments
         args = locals()
-        keys = self.remove_keys_from_dict(args, ("self", "return_only_first"))
+        keys = self.remove_keys_from_dict(args, ("self", "return_only_first", "sort_column", "sort_dir"))
 
         if len(keys)<1:
             res = -1
