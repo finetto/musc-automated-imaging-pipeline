@@ -73,6 +73,8 @@ def parse_summary_file(summary_file):
     series_info = []
     session_info = {}
 
+    series_counter = 0
+
     try:
         with open(summary_file, "r") as file:
             for line in file:
@@ -102,11 +104,26 @@ def parse_summary_file(summary_file):
                         reading_total = True
 
                     else:
+
+                        # increase counter
+                        series_counter = series_counter+1
+
                         # parse line
                         columns = line.strip().split()
-                        if len(columns) < 5:
+                        if len(columns) < 4:
                             print("ERROR: Could not parse session summary file \"" + summary_file + "\". Invalid column number.")
                             return -1
+                        
+                        # occasionally the series number is missing. If this is the case, insert it
+                        if len(columns)==4:
+
+                            # verify that the "second" column is compatible with the date, and the "third" with the time
+                            if (len(columns[0]) != 8) or (len(columns[1]) != 12):
+                                print("ERROR: Could not parse session summary file \"" + summary_file + "\". Invalid column contents.")
+                                return -1
+                            
+                            # insert a new first column with the series counter
+                            columns.insert(0,str(series_counter))
                         
                         # convert date and time
                         series_date = columns[1]
