@@ -29,7 +29,7 @@ class db:
         timeout = 5
         try:
             self._lock = FileLock(db_file + ".lock",timeout=0)
-            self._locked = True
+            self._locked = self._lock.is_locked
         except Timeout as te:
                 pass # will try again below
         except Exception as e:
@@ -40,7 +40,7 @@ class db:
         while not self._locked:
             try:
                 self._lock.acquire(timeout=timeout)
-                self._locked = True
+                self._locked = self._lock.is_locked
             except Timeout as te:
                 print("WARNING: Another process is currently accessing the database. Waiting for another " + str(timeout) + " s.")
                 continue
