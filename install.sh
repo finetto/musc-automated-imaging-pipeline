@@ -27,7 +27,7 @@ echo ""
 
 # install dedicated python virtual environment
 echo "Installing dedicated virtual environment"
-pip install virtualenv
+sudo pip install virtualenv
 if [ -d .automated_pipeline_env ] ; then
 echo ""
   read -p "Detected existing virtual environment. Would you like to delete it and create it again [y/n]? " user_input
