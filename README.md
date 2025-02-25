@@ -85,7 +85,7 @@ __NOTE:__ this file is not generated automatically and will always need to be cr
  </details>
 
 ### Study configuration
-The study configuration file contains settings that determine the format of the study and session IDs, and on how data will be deidentified.
+The study configuration file contains settings that determine the format of the study and session IDs, and on how data will be de-identified.
 
  <details>
 <summary>study_settings.json</summary>
@@ -116,8 +116,8 @@ The study configuration file contains settings that determine the format of the 
 `subject_identifier_format`->`desired_start_str` is a string that will be added between the prefix and the subject number\
 `subject_identifier_format`->`desired_digits` is the number of desired digits in the subject number.\
 \
-`deidentify_data` determines if data will be deidentified (true) or not (false)\
-`deidentified_subject_identifier_format` determines how the deidentified subject ID will be formatted. The settings are equivalent to those available under `subject_identifier_format`\
+`deidentify_data` determines if data will be de-identified (true) or not (false)\
+`deidentified_subject_identifier_format` determines how the de-identified subject ID will be formatted. The settings are equivalent to those available under `subject_identifier_format`\
 \
 `session_identifier_format`->`desired_prefix` is the desired prefix that will be added to the session ID\
 `session_identifier_format`->`desired_digits` is the number of desired digits in the session number.
@@ -144,7 +144,7 @@ The data processing configuration file contains settings that determine how data
 `mri`->`workdir` is the location of the temporary work directory used by the processing scripts. Data in this folder will eventually be deleted, so the folder should not be seen as a permanent storage location.\
 `mri`->`sourcedata_dir` is the directory where the source data will be stored. The path can be relative or absolute.\
 `mri`->`data_dir` is the directory where data will be stored in BIDS format. The path can be relative or absolute.\
-`mri`->`deidentified_data_dir` is the directory where all deidentified data will be stored (if data deidentification is enabled - see study configuration settings). The path can be relative or absolute.\
+`mri`->`deidentified_data_dir` is the directory where all de-identified data will be stored (if data deidentification is enabled - see study configuration settings). The path can be relative or absolute.\
 `mri`->`summary_file_wait_timeout_h` determines how long (in hours) the application will wait for the session summary file on CBI Home. If the file is not generated within this time frame, all validation steps requiring the summary file will be skipped
 
  </details>
@@ -255,7 +255,8 @@ Next, we need to update the `box_sync_settings.json` file:
     },
     "sourcedata_dir_id": "",
     "data_dir_id": "",
-    "deidentified_data_dir_id": ""
+    "deidentified_data_dir_id": "",
+    "app_backup_dir_id": ""
 }
 ```
 
@@ -267,7 +268,8 @@ Next, we need to update the `box_sync_settings.json` file:
 \
 `sourcedata_dir_id` is the ID of the Box folder where the source data will be uploaded.\
 `data_dir_id` is the ID of the Box folder where the data in BIDS format will be uploaded.\
-`deidentified_data_dir_id` is the ID of the Box folder where the deidentified data will be uploaded.
+`deidentified_data_dir_id` is the ID of the Box folder where the de-identified data will be uploaded.\
+`app_backup_dir_id` is the ID of the Box folder where the pipeline application will be backed up.
 
 __NOTE:__ To get the ID of a folder on Box, go to your Box developer account and navigate to the folder. The URL in the address bar will contain the numeric folder ID (e.g. https://app.box.com/folder/__308004028317__). This applies both to folders owned by the account, and to folders shared with the account.\
 The ID needs to be added as a string to the settings file, meaning it needs to be enclosed in quotation marks.
@@ -281,7 +283,7 @@ The ID needs to be added as a string to the settings file, meaning it needs to b
  The user can interact with the pipeline through the _Data Viewer_ GUI. The Data Viewer can be accessed by running the `run_data_viewer.sh` script.
 
  ### Participants
- The first visible view after opening the Data Viewer will be the _Participants_ view. This view shows a list of all participants, of their deidentified ID and of their group assignment. 
+ The first visible view after opening the Data Viewer will be the _Participants_ view. This view shows a list of all participants, of their de-identified ID and of their group assignment. 
 ![Screenshot of the Participants view.](/docs/images/participants_1.png)
  
 To add a new participant, click on the "New Participant" button and enter the participant's ID. Then click "OK".

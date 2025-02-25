@@ -110,6 +110,26 @@ if not settings_box["use_box_sync"]:
     close_log_file()
     sys.exit()
 
+# check if any upload folders were specified
+if (settings_box["sourcedata_dir_id"] == None) or (settings_box["sourcedata_dir_id"] == ""):
+    sourcedata_upload_enabled = False
+else:
+    sourcedata_upload_enabled = True
+
+if (settings_box["data_dir_id"] == None) or (settings_box["data_dir_id"] == ""):
+    data_upload_enabled = False
+else:
+    data_upload_enabled = True
+    
+if (settings_box["deidentified_data_dir_id"] == None) or (settings_box["deidentified_data_dir_id"] == ""):
+    deidentified_data_upload_enabled = False
+else:
+    deidentified_data_upload_enabled = True
+
+if (not sourcedata_upload_enabled) and (not data_upload_enabled) and (not deidentified_data_upload_enabled):
+    print("\nBox upload disabled.\nTerminating script.")
+    sys.exit()
+
 # connect to database
 db = database.db(db_settings["db_path"])
 db.n_default_query_attempts = db_settings["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
@@ -126,15 +146,15 @@ if not success:
     terminate_after_error()
 
 # check existence of upload folders
-if not box.folder_exists(settings_box["sourcedata_dir_id"]):
+if sourcedata_upload_enabled and (not box.folder_exists(settings_box["sourcedata_dir_id"])):
     print("ERROR: Sourcedata folder does not exist on Box.")
     terminate_after_error()
 
-if not box.folder_exists(settings_box["data_dir_id"]):
+if data_upload_enabled and (not box.folder_exists(settings_box["data_dir_id"])):
     print("ERROR: Data folder does not exist on Box.")
     terminate_after_error()
 
-if (settings_study["deidentify_data"]) and (not box.folder_exists(settings_box["deidentified_data_dir_id"])):
+if deidentified_data_upload_enabled and settings_study["deidentify_data"] and (not box.folder_exists(settings_box["deidentified_data_dir_id"])):
     print("ERROR: Deidentified data folder does not exist on Box.")
     terminate_after_error()
 
@@ -228,81 +248,83 @@ for session in sessions_requiring_upload:
                                                         
             
     # upload sourcedata
-    folder_id = box.create_folder(settings_box["sourcedata_dir_id"],(participant_study_id, participant_session_id))
-    if folder_id==-1:
-        print("WARNING: Unable to create source data folder on Box for " + participant_study_id + ", " + participant_session_id + ".")
-        issues_during_upload = True
-        continue
-
-    data_file_srcpath = session_dir.joinpath(data_file)
-    summary_file_srcpath = session_dir.joinpath(session["summary_file"])
-
-    if data_file_srcpath.exists():
-        res = box.upload_file(str(data_file_srcpath), folder_id)
-        if res==-1:
-            print("WARNING: Unable to upload source data to Box for " + participant_study_id + ", " + participant_session_id + ".")
+    if sourcedata_upload_enabled:
+        folder_id = box.create_folder(settings_box["sourcedata_dir_id"],(participant_study_id, participant_session_id))
+        if folder_id==-1:
+            print("WARNING: Unable to create source data folder on Box for " + participant_study_id + ", " + participant_session_id + ".")
             issues_during_upload = True
             continue
 
-    if summary_file_srcpath.exists():
-        res = box.upload_file(str(summary_file_srcpath), folder_id)
-        if res==-1:
-            print("WARNING: Unable to upload summary file to Box for " + participant_study_id + ", " + participant_session_id + ".")
-            issues_during_upload = True
-            continue
+        data_file_srcpath = session_dir.joinpath(data_file)
+        summary_file_srcpath = session_dir.joinpath(session["summary_file"])
+
+        if data_file_srcpath.exists():
+            res = box.upload_file(str(data_file_srcpath), folder_id)
+            if res==-1:
+                print("WARNING: Unable to upload source data to Box for " + participant_study_id + ", " + participant_session_id + ".")
+                issues_during_upload = True
+                continue
+
+        if summary_file_srcpath.exists():
+            res = box.upload_file(str(summary_file_srcpath), folder_id)
+            if res==-1:
+                print("WARNING: Unable to upload summary file to Box for " + participant_study_id + ", " + participant_session_id + ".")
+                issues_during_upload = True
+                continue
     
     # upload BIDS data
-    session_folder_id = box.create_folder(settings_box["data_dir_id"],(participant_study_id, participant_session_id))
-    if session_folder_id==-1:
-        print("WARNING: Unable to create data folder on Box for " + participant_study_id + ", " + participant_session_id + ".")
-        issues_during_upload = True
-        continue
-
-    session_srcdir = participant_data_folder.joinpath(participant_session_id)
-    if session_srcdir.exists():
-        upload_interrupted = False
-        for dirpath, dirnames, filenames in os.walk(session_srcdir):
-
-            # get relative path of current folder
-            dirpath_stem = dirpath.removeprefix(str(session_srcdir))
-            if len(dirpath_stem) == 0:
-                current_folder_id = session_folder_id
-            else:
-                dirpath_stem_parts = dirpath_stem.strip().removeprefix("/").removeprefix("\\").replace("\\","/").split("/")
-                current_folder_id = box.create_folder(session_folder_id,dirpath_stem_parts)
-                if current_folder_id == -1:
-                    print("WARNING: Unable to create all folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
-                    upload_interrupted = True
-                    break
-
-            # create all subfolders
-            for dirname in dirnames:
-                subfolder_id = box.create_folder(current_folder_id,(dirname, ))
-                if subfolder_id == -1:
-                    print("WARNING: Unable to create all folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
-                    upload_interrupted = True
-                    break
-            if upload_interrupted:
-                break
-
-            # upload all files in current folder
-            for filename in filenames:
-                file_srcpath = Path(dirpath).joinpath(filename)
-                res = box.upload_file(str(file_srcpath), current_folder_id)
-                if res==-1:
-                    print("WARNING: Unable to upload all files to Box for " + participant_study_id + ", " + participant_session_id + ".")
-                    upload_interrupted = True
-                    break
-            if upload_interrupted:
-                break
-        
-        # check for any errors
-        if upload_interrupted:
+    if data_upload_enabled:
+        session_folder_id = box.create_folder(settings_box["data_dir_id"],(participant_study_id, participant_session_id))
+        if session_folder_id==-1:
+            print("WARNING: Unable to create data folder on Box for " + participant_study_id + ", " + participant_session_id + ".")
             issues_during_upload = True
             continue
 
+        session_srcdir = participant_data_folder.joinpath(participant_session_id)
+        if session_srcdir.exists():
+            upload_interrupted = False
+            for dirpath, dirnames, filenames in os.walk(session_srcdir):
+
+                # get relative path of current folder
+                dirpath_stem = dirpath.removeprefix(str(session_srcdir))
+                if len(dirpath_stem) == 0:
+                    current_folder_id = session_folder_id
+                else:
+                    dirpath_stem_parts = dirpath_stem.strip().removeprefix("/").removeprefix("\\").replace("\\","/").split("/")
+                    current_folder_id = box.create_folder(session_folder_id,dirpath_stem_parts)
+                    if current_folder_id == -1:
+                        print("WARNING: Unable to create all folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+
+                # create all subfolders
+                for dirname in dirnames:
+                    subfolder_id = box.create_folder(current_folder_id,(dirname, ))
+                    if subfolder_id == -1:
+                        print("WARNING: Unable to create all folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+                if upload_interrupted:
+                    break
+
+                # upload all files in current folder
+                for filename in filenames:
+                    file_srcpath = Path(dirpath).joinpath(filename)
+                    res = box.upload_file(str(file_srcpath), current_folder_id)
+                    if res==-1:
+                        print("WARNING: Unable to upload all files to Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+                if upload_interrupted:
+                    break
+            
+            # check for any errors
+            if upload_interrupted:
+                issues_during_upload = True
+                continue
+
     # upload deidentified BIDS data
-    if settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
+    if deidentified_data_upload_enabled and settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
         session_folder_id = box.create_folder(settings_box["deidentified_data_dir_id"],(participant_deidentified_id, participant_session_id))
         if session_folder_id==-1:
             print("WARNING: Unable to create deidentified data folder on Box for " + participant_deidentified_id + ", " + participant_session_id + ".")

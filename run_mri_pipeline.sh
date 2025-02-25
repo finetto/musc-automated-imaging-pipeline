@@ -49,8 +49,13 @@ python3 code/mri_pipeline/upload_data.py
 echo "Done"
 
 echo ""
+echo "Running app backup script ..."
+python3 code/mri_pipeline/upload_data.py
+echo "Done"
+
+echo ""
 echo "Running data cleanup script ..."
-python3 code/mri_pipeline/cleanup_data.py
+python3 code/mri_pipeline/backup_application.py
 echo "Done"
 
 echo ""

@@ -16,6 +16,7 @@ def _init():
         "sourcedata_dir_id": "",
         "data_dir_id": "",
         "deidentified_data_dir_id": "",
+        "app_backup_dir_id": ""
     }
         
     return settings
