@@ -15,12 +15,12 @@ def _init():
         },
         "errors": {
             "send_notification": True,
-            "subject": "DARPA: Error during pipeline execution",
+            "subject": "Automated Pipeline: Error during pipeline execution",
             "recipients": []
         },
         "mri_data_validation": {
             "send_notification": True,
-            "subject": "DARPA: MRI data validation required",
+            "subject": "Automated Pipeline: MRI data validation required",
             "recipients": [],
             "send_reminder": True,
             "reminder_interval_h": 24
