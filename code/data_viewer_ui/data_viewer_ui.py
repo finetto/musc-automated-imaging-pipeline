@@ -231,11 +231,11 @@ class data_viewer_ui(QWidget):
         # re-activate session list
         self.ui.listWidget_mri_session_series.blockSignals(False)
         
-        # update series table
-        self.update_session_series_table()
-
         # close connection to database
         db.close()
+
+        # update series table
+        self.update_session_series_table()
 
     def validate_mri_session_button_pressed(self,table=None, row=-1, id=None, description=""):
 

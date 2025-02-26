@@ -9,7 +9,6 @@ class db:
     _cursor = None
     lastrowid = None
     _lock = None
-    _locked = False
 
     # class constructor
     def __init__(self, db_file):
@@ -29,7 +28,6 @@ class db:
         timeout = 5
         try:
             self._lock = FileLock(db_file + ".lock",timeout=0)
-            self._locked = self._lock.is_locked
         except Timeout as te:
                 pass # will try again below
         except Exception as e:
@@ -37,10 +35,9 @@ class db:
             print(e)
             return
         
-        while not self._locked:
+        while not self._lock.is_locked:
             try:
                 self._lock.acquire(timeout=timeout)
-                self._locked = self._lock.is_locked
             except Timeout as te:
                 print("WARNING: Another process is currently accessing the database. Waiting for another " + str(timeout) + " s.")
                 continue
@@ -141,7 +138,7 @@ class db:
         self.lastrowid = None    
 
         # release lock
-        if self._locked:
+        while self._lock.is_locked:
             self._lock.release()      
 
 
