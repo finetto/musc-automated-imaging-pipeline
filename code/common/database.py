@@ -27,7 +27,7 @@ class db:
         self._locked = False
         timeout = 5
         try:
-            self._lock = FileLock(db_file + ".lock",timeout=0)
+            self._lock = FileLock(db_file + ".lock",timeout=0,mode=0o664)
         except Timeout as te:
                 pass # will try again below
         except Exception as e:
