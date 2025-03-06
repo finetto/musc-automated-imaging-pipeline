@@ -55,7 +55,8 @@ echo ""
 if [ -z $FSLDIR ] ; then
   echo "Installing FSL"
   wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py
-  python3 fslinstaller.py -d $HOME/fsl -o
+  FSLDIR=$HOME/fsl
+  python3 fslinstaller.py -d $FSLDIR -o
   rm fslinstaller.py
   echo ""
   echo "Remember to restart your terminal to activate FSL!"
@@ -77,8 +78,9 @@ echo ""
 
 # set cronjob to run pipeline at the beginning of every hour
 echo "Configuring cronjobs"
-CMD="0 * * * * /usr/bin/flock -n $SCRIPT_DIR/run_mri_pipeline.lock $SCRIPT_DIR/run_mri_pipeline.sh"
+CMD="0 * * * * export FSLDIR=$FSLDIR; . ${FSLDIR}/etc/fslconf/fsl.sh; /usr/bin/flock -n $SCRIPT_DIR/run_mri_pipeline.lock $SCRIPT_DIR/run_mri_pipeline.sh"
 (crontab -l ; echo "$CMD") 2>/dev/null | sort - | uniq - | crontab -
+sudo systemctl restart cron
 
 
 # deactivate python environment
