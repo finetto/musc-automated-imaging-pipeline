@@ -204,7 +204,7 @@ for session in sessions_requiring_conversion:
                             "-s", participant_session_id, 
                             "-c", dcm2bids_config_file, 
                             "-o",str(bids_folder), 
-                            "--skip_dcm2niix", "--clobber"], 
+                            "--skip_dcm2niix", "--clobber", "--force_dcm2bids"], 
                             stdout=logfile) # run BIDS conversion
                 
             # update series

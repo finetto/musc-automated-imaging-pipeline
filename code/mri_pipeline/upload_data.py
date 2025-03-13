@@ -323,6 +323,57 @@ for session in sessions_requiring_upload:
                 issues_during_upload = True
                 continue
 
+    # upload conversion logs
+    if data_upload_enabled:
+        session_folder_id = box.create_folder(settings_box["data_dir_id"],("conversion_logs", participant_study_id, participant_session_id))
+        if session_folder_id==-1:
+            print("WARNING: Unable to create conversion log folder on Box for " + participant_study_id + ", " + participant_session_id + ".")
+            issues_during_upload = True
+            continue
+
+        logs_srcdir = log_folder
+        if logs_srcdir.exists():
+            upload_interrupted = False
+            for dirpath, dirnames, filenames in os.walk(logs_srcdir):
+
+                # get relative path of current folder
+                dirpath_stem = dirpath.removeprefix(str(logs_srcdir))
+                if len(dirpath_stem) == 0:
+                    current_folder_id = session_folder_id
+                else:
+                    dirpath_stem_parts = dirpath_stem.strip().removeprefix("/").removeprefix("\\").replace("\\","/").split("/")
+                    current_folder_id = box.create_folder(session_folder_id,dirpath_stem_parts)
+                    if current_folder_id == -1:
+                        print("WARNING: Unable to create all log folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+
+                # create all subfolders
+                for dirname in dirnames:
+                    subfolder_id = box.create_folder(current_folder_id,(dirname, ))
+                    if subfolder_id == -1:
+                        print("WARNING: Unable to create all log folders on Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+                if upload_interrupted:
+                    break
+
+                # upload all files in current folder
+                for filename in filenames:
+                    file_srcpath = Path(dirpath).joinpath(filename)
+                    res = box.upload_file(str(file_srcpath), current_folder_id)
+                    if res==-1:
+                        print("WARNING: Unable to upload all log files to Box for " + participant_study_id + ", " + participant_session_id + ".")
+                        upload_interrupted = True
+                        break
+                if upload_interrupted:
+                    break
+            
+            # check for any errors
+            if upload_interrupted:
+                issues_during_upload = True
+                continue
+
     # upload deidentified BIDS data
     if deidentified_data_upload_enabled and settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
         session_folder_id = box.create_folder(settings_box["deidentified_data_dir_id"],(participant_deidentified_id, participant_session_id))

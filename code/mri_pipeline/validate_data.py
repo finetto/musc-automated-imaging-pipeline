@@ -177,6 +177,9 @@ for session in sessions_requiring_validation:
         matching_conversion_info = list(filter(lambda conversion_info:conversion_info["series_number"]==series_number, conversion_summary))
         matching_series = db.get_mri_series_data(session_id=session_id, series_number=series_number, return_only_first=True)
 
+        # sort conversion info by file name (in series with multiple converted files, they are sometimes out of order after conversion)
+        matching_conversion_info = sorted(matching_conversion_info, key=lambda x: x['file'])
+
         #initialize errors
         errors_i = ""
 
@@ -259,6 +262,8 @@ for session in sessions_requiring_validation:
         # loop through converted files for this series and update dcm2bids search criteria
         # when there are multiple converted files for one series, they share the same search criteria
         # for now, we just loop through them all and overwrite until we hit the last iteration
+        # TODO: when there are multiple converted files, we could consider using the largest (lexographically or numerically) values instead of the last ones
+        #       since the converted files are sorted by file name, this should already be happening in most situations
         for conversion_info in series["conversion_info"]:
             dcm2bids_search_criteria = dict()
             dcm2bids_search_criteria_values = []
