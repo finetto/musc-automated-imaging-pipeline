@@ -18,6 +18,10 @@ echo "Running CBI SYNC script ..."
 python3 code/mri_pipeline/cbi_sync.py
 echo "Done"
 
+echo "Running local sync script ..."
+python3 code/mri_pipeline/local_sync.py
+echo "Done"
+
 echo ""
 echo "Running data extraction script ..."
 python3 code/mri_pipeline/extract_data.py
