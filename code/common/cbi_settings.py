@@ -7,6 +7,7 @@ import json
 def _init():
     
     settings = {
+        "use_cbi_sync": False,
         "connection": {
             "host": "cbihome.musc.edu",
             "credentials_file": ".cbicredentials.json"

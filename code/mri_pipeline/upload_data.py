@@ -76,6 +76,19 @@ if mail_settings == -1:
     print("ERROR: Unable to load notification settings from \"" + mail_settings_file + "\".")
     terminate_after_error()
 
+# get box sync settings from file
+box_settings_file = os.path.join(rootdir,"settings","box_sync_settings.json")
+settings_box = box_sync_settings.load_from_file(box_settings_file)
+if settings_box == -1:
+    print("ERROR: Unable to load Box settings from \"" + box_settings_file + "\".")
+    terminate_after_error()
+
+# check if Box sync is enabled
+if not settings_box["use_box_sync"]:
+    print("\nBox sync disabled.\nTerminating script.")
+    close_log_file()
+    sys.exit()
+
 # get study settings from file
 study_settings_file = os.path.join(rootdir,"settings","study_settings.json")
 settings_study = study_settings.load_from_file(study_settings_file)
@@ -96,19 +109,6 @@ db_settings = database_settings.load_from_file(db_settings_file)
 if db_settings == -1:
     print("ERROR: Unable to load database settings from \"" + db_settings_file + "\".")
     terminate_after_error()
-
-# get box sync settings from file
-box_settings_file = os.path.join(rootdir,"settings","box_sync_settings.json")
-settings_box = box_sync_settings.load_from_file(box_settings_file)
-if settings_box == -1:
-    print("ERROR: Unable to load Box settings from \"" + box_settings_file + "\".")
-    terminate_after_error()
-
-# check if Box sync is enabled
-if not settings_box["use_box_sync"]:
-    print("\nBox sync disabled.\nTerminating script.")
-    close_log_file()
-    sys.exit()
 
 # check if any upload folders were specified
 if (settings_box["sourcedata_dir_id"] == None) or (settings_box["sourcedata_dir_id"] == ""):

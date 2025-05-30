@@ -73,18 +73,24 @@ if settings_notification == -1:
     print("ERROR: Unable to load notification settings from \"" + mail_settings_file + "\".")
     terminate_after_error()
 
-# get study settings from file
-study_settings_file = os.path.join(rootdir,"settings","study_settings.json")
-settings_study = study_settings.load_from_file(study_settings_file)
-if settings_study == -1:
-    print("ERROR: Unable to load study settings from \"" + study_settings_file + "\".")
-    terminate_after_error()
-
 # get cbi sync settings from file
 cbi_settings_file = os.path.join(rootdir,"settings","cbi_settings.json")
 settings_cbi = cbi_settings.load_from_file(cbi_settings_file)
 if settings_cbi == -1:
     print("ERROR: Unable to load CBI settings from \"" + cbi_settings_file + "\".")
+    terminate_after_error()
+
+# check if CBI sync is enabled
+if not settings_cbi["use_cbi_sync"]:
+    print("\nCBI sync disabled.\nTerminating script.")
+    close_log_file()
+    sys.exit()
+
+# get study settings from file
+study_settings_file = os.path.join(rootdir,"settings","study_settings.json")
+settings_study = study_settings.load_from_file(study_settings_file)
+if settings_study == -1:
+    print("ERROR: Unable to load study settings from \"" + study_settings_file + "\".")
     terminate_after_error()
 
 # get processing settings from file
