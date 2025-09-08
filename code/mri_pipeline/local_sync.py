@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import shutil
 from datetime import datetime
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
@@ -8,15 +9,14 @@ parentdir = os.path.dirname(currentdir)
 rootdir = os.path.dirname(parentdir)
 
 sys.path.insert(0, parentdir) 
-from common import cbi_settings, processing_settings
+from common import local_sync_settings, processing_settings
 from common import database, database_settings
 from common import notifications, notification_settings
-from common import cbi_query
 from common import cbi_parse
 from common import study, study_settings
 
 # global variables
-log_file_name = os.path.join(rootdir,"log","cbi_sync_log.txt")
+log_file_name = os.path.join(rootdir,"log","local_sync_log.txt")
 log_file = None
 original_stdout = None
 
@@ -31,7 +31,7 @@ def open_log_file():
     original_stdout = sys.stdout
     sys.stdout = log_file
     print("--------------------------")
-    print("-------- CBI SYNC --------")
+    print("------- LOCAL SYNC -------")
     print(datetime.now())
     print("--------------------------")
 
@@ -53,7 +53,7 @@ def terminate_after_error():
     # send notification
     if settings_notification["errors"]["send_notification"]:
         notifications.send_email(settings_notification["errors"]["subject"],
-                         "Attention: Errors were encountered during the execution of 'cbi_sync.py'\nPlease check the attached log file for further information.", 
+                         "Attention: Errors were encountered during the execution of 'local_sync.py'\nPlease check the attached log file for further information.", 
                          settings_notification["errors"]["recipients"],
                          settings_notification["mail_server"]["address"],
                          settings_notification["mail_server"]["port"],
@@ -73,16 +73,16 @@ if settings_notification == -1:
     print("ERROR: Unable to load notification settings from \"" + mail_settings_file + "\".")
     terminate_after_error()
 
-# get cbi sync settings from file
-cbi_settings_file = os.path.join(rootdir,"settings","cbi_settings.json")
-settings_cbi = cbi_settings.load_from_file(cbi_settings_file)
-if settings_cbi == -1:
-    print("ERROR: Unable to load CBI settings from \"" + cbi_settings_file + "\".")
+# get local sync settings from file
+local_sync_settings_file = os.path.join(rootdir,"settings","local_sync_settings.json")
+settings_local_sync = local_sync_settings.load_from_file(local_sync_settings_file)
+if settings_local_sync == -1:
+    print("ERROR: Unable to load local sync settings settings from \"" + local_sync_settings_file + "\".")
     terminate_after_error()
 
-# check if CBI sync is enabled
-if not settings_cbi["use_cbi_sync"]:
-    print("\nCBI sync disabled.\nTerminating script.")
+# check if local sync is enabled
+if not settings_local_sync["use_local_sync"]:
+    print("\nLocal sync disabled.\nTerminating script.")
     close_log_file()
     sys.exit()
 
@@ -107,11 +107,23 @@ if settings_db == -1:
     print("ERROR: Unable to load database settings from \"" + db_settings_file + "\".")
     terminate_after_error()
 
-# get available sessions via SSH connection
-cbi_data = cbi_query.get_sessions(settings_cbi["connection"]["host"], 
-                                  settings_cbi["remote_data_dir"], 
-                                  settings_cbi["connection"]["credentials_file"])
-if cbi_data == -1: terminate_after_error()
+# scan local data folder
+local_data_dir = Path(settings_local_sync["local_data_dir"])
+print(settings_local_sync["local_data_dir"])
+print(local_data_dir)
+if not local_data_dir.exists():
+    print("ERROR: Could not find local data directory.")
+    terminate_after_error()
+
+local_data = {"data_files": [], "summary_files": []}
+
+for dirpath, dirnames, filenames in os.walk(settings_local_sync["local_data_dir"]):
+
+    for filename in filenames:
+        if filename.endswith(".zip"):
+            local_data["data_files"].append(os.path.join(dirpath,filename))
+        elif filename.endswith("_SUMMARY.txt"):
+            local_data["summary_files"].append(os.path.join(dirpath,filename))
 
 
 # connect to database
@@ -119,7 +131,10 @@ db = database.db(settings_db["db_path"])
 db.n_default_query_attempts = settings_db["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
 # process all session data files
-for data_file in cbi_data["data_files"]:
+for data_file_path in local_data["data_files"]:
+
+    data_file = os.path.basename(data_file_path)
+    data_file_dir = os.path.dirname(data_file_path)
 
     # check if this session is already in database
     session_id = db.get_mri_session_id(data_file=data_file)
@@ -183,7 +198,7 @@ for data_file in cbi_data["data_files"]:
                                 data_recorded_date = session_info["date"],
                                 data_recorded_time = session_info["time"],
                                 data_recorded_dt = session_info["datetime"].timestamp())#,
-                                #data_downloaded_dt = datetime.now().timestamp())    
+                                #data_downloaded_dt = datetime.now().timestamp())    # only needed for debugging with data that was already downloaded
     if session_id == -1: terminate_after_error()
 
 # commit changes
@@ -204,7 +219,10 @@ for session in sessions_with_missing_summary:
     # look for summary files matching this session name
     matching_summary_file = None
     if (session_name != None) and (session_name != ""):
-        for summary_file in cbi_data["summary_files"]:
+        for summary_file_path in local_data["summary_files"]:
+            summary_file = os.path.basename(summary_file_path)
+            summary_file_dir = os.path.dirname(summary_file_path)
+
             if session_name in summary_file:
                 matching_summary_file = summary_file
                 break
@@ -213,7 +231,10 @@ for session in sessions_with_missing_summary:
     if (not matching_summary_file) and (data_recorded_date != None) and (data_recorded_date != "") and (data_recorded_time != None) and (data_recorded_time != ""):
         dt_search_str = "_" + data_recorded_date.replace("/","") + "_" + data_recorded_time.replace(":","") + "_"
 
-        for summary_file in cbi_data["summary_files"]:
+        for summary_file_path in local_data["summary_files"]:
+            summary_file = os.path.basename(summary_file_path)
+            summary_file_dir = os.path.dirname(summary_file_path)
+
             if dt_search_str in summary_file:
                 matching_summary_file = summary_file
                 found_by_date = True
@@ -231,8 +252,7 @@ for session in sessions_with_missing_summary:
 # commit changes
 db.commit()
 
-
-# download missing data files
+# copy missing data files
 sessions_requiring_data_download = db.find_mri_sessions_requiring_data_download(exclude_skipped=True)
 if sessions_requiring_data_download == -1: terminate_after_error()
 for session in sessions_requiring_data_download:
@@ -246,15 +266,18 @@ for session in sessions_requiring_data_download:
     if not session_dir.exists():
         os.mkdir(session_dir)
 
-    # download file
-    print("Downloading \"" + data_file + "\"")
-    success = cbi_query.download_file(data_file, 
-                                      settings_cbi["connection"]["host"], 
-                                      settings_cbi["remote_data_dir"], 
-                                      settings_cbi["connection"]["credentials_file"], 
-                                      session_dir,
-                                      show_progress=False)
-    
+    # copy file
+    print("Copying \"" + data_file + "\"")
+    for data_file_path in local_data["data_files"]:
+
+        data_file_i = os.path.basename(data_file_path)
+        data_file_dir_i = os.path.dirname(data_file_path)
+
+        if data_file==data_file_i:
+            shutil.copyfile(data_file_path, str(session_dir.joinpath(data_file)))
+            success = 1
+            break
+
     # update database
     if success == 1:
         res = db.update_mri_session(session_id, 
@@ -265,7 +288,7 @@ for session in sessions_requiring_data_download:
         db.commit()
 
 
-# download missing summary files
+# copy missing summary files
 sessions_requiring_summary_download = db.find_mri_sessions_requiring_summary_download(exclude_skipped=True)
 if sessions_requiring_summary_download == -1: terminate_after_error()
 for session in sessions_requiring_summary_download:
@@ -281,13 +304,15 @@ for session in sessions_requiring_summary_download:
         os.mkdir(session_dir)
 
     # download file
-    print("Downloading \"" + summary_file + "\"")
-    success = cbi_query.download_file(summary_file, 
-                                      settings_cbi["connection"]["host"], 
-                                      settings_cbi["remote_data_dir"], 
-                                      settings_cbi["connection"]["credentials_file"], 
-                                      session_dir,
-                                      show_progress=False)
+    print("Copying \"" + summary_file + "\"")
+    for summary_file_path in local_data["summary_files"]:
+        summary_file_i = os.path.basename(summary_file_path)
+        summary_file_dir_i = os.path.dirname(summary_file_path)
+
+        if summary_file==summary_file_i:
+            shutil.copyfile(summary_file_path, str(session_dir.joinpath(summary_file)))
+            success = 1
+            break
 
     # update database
     if success == 1:

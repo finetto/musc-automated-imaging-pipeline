@@ -13,9 +13,9 @@ A pipeline for processing research imaging data collected at the Medical Univers
 Currently, the pipeline supports MR data recorded at CBI.
 
 ## Installation
-The pipeline can be installed either un Linux or WSL2. The installation script leverages the `apt` package manager, therefore Ubuntu and similar distributions are recommended.\
+The pipeline can be installed either on Linux or WSL2. The installation script leverages the `apt` package manager, therefore Ubuntu and similar distributions are recommended.\
 To use the software, download the repository to an appropriate folder (e.g. /opt). Navigate to the directory and make sure the `install.sh` script is executable (`chmod +x install.sh`). Then execute `./install.sh`.\
-The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available.
+The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available. Finally, the script will create a cronjob that will run the pipeline on a schedule. If this is not desired, run the installation script with the '-c' option: `./install.sh -c n`.
 
 <details>
 <summary>Notes on FSL</summary>
@@ -40,6 +40,7 @@ These settings are needed to connect to the CBI Home server and to navigate to t
 
 ```json
 {
+    "use_cbi_sync": true,
     "connection": {
         "host": "cbihome.musc.edu",
         "credentials_file": "settings/.cbicredentials.json"
@@ -48,6 +49,7 @@ These settings are needed to connect to the CBI Home server and to navigate to t
 }
 ```
 
+`use_cbi_sync` allows to enable or disable the syncronization with CBI Home\
 `credentials_file` allows to set the location of the file containing the login credentials (see below)\
 `remote_data_dir` allows to set the location of the project folder on CBI Home (e.g. "/MRdata/McTeague/DARPA_RECOVERS/upload")
  </details>
@@ -65,6 +67,23 @@ These settings are needed to connect to the CBI Home server and to navigate to t
 `password` password associated with above user\
 \
 __NOTE:__ this file is not generated automatically and will always need to be created manually. It can be stored anywhere on the system, as long as the corresponding setting in cbi_settings.json reflects this location. It is recommended to set the permissions of the file (e.g. chmod 640) so that only authorized users can view it.
+ </details>
+
+  ### Local data sync configuration
+The pipeline will optionally also look for data in a local folder. This can be used instead of the syncronization with CBI Home, or in addition to it. CBI Home sync is executed first - if both options are enabled, data on CBI Home will be prioritized.
+
+ <details>
+<summary>local_sync_settings.json</summary>
+
+```json
+{
+    "use_local_sync": false,
+    "local_data_dir": ""
+}
+```
+
+`use_local_sync` allows to enable or disable the syncronization with a local data folder\
+`local_data_dir` is the local directory where the pipeline will look for data. The path can be relative or absolute.
  </details>
 
  ### Database configuration

@@ -1,4 +1,4 @@
-# module with functions managing the settings used to connect to and run queries on CBI Home
+# module with functions managing the settings used synchronize with a local folder
 
 from pathlib import Path
 import json
@@ -7,12 +7,8 @@ import json
 def _init():
     
     settings = {
-        "use_cbi_sync": False,
-        "connection": {
-            "host": "cbihome.musc.edu",
-            "credentials_file": ".cbicredentials.json"
-        },
-        "remote_data_dir": "",
+        "use_local_sync": False,
+        "local_data_dir": "",
     }
         
     return settings

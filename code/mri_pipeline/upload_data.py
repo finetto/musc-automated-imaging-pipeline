@@ -76,6 +76,13 @@ if mail_settings == -1:
     print("ERROR: Unable to load notification settings from \"" + mail_settings_file + "\".")
     terminate_after_error()
 
+# get box sync settings from file
+box_settings_file = os.path.join(rootdir,"settings","box_sync_settings.json")
+settings_box = box_sync_settings.load_from_file(box_settings_file)
+if settings_box == -1:
+    print("ERROR: Unable to load Box settings from \"" + box_settings_file + "\".")
+    terminate_after_error()
+
 # get study settings from file
 study_settings_file = os.path.join(rootdir,"settings","study_settings.json")
 settings_study = study_settings.load_from_file(study_settings_file)
@@ -97,17 +104,35 @@ if db_settings == -1:
     print("ERROR: Unable to load database settings from \"" + db_settings_file + "\".")
     terminate_after_error()
 
-# get box sync settings from file
-box_settings_file = os.path.join(rootdir,"settings","box_sync_settings.json")
-settings_box = box_sync_settings.load_from_file(box_settings_file)
-if settings_box == -1:
-    print("ERROR: Unable to load Box settings from \"" + box_settings_file + "\".")
-    terminate_after_error()
-
-# check if Box sync is enabled
+# check if Box sync is enabled. If disabled, mark all pending sessions as uploaded and then exit
 if not settings_box["use_box_sync"]:
-    print("\nBox sync disabled.\nTerminating script.")
+    print("\nBox sync disabled.\nAll pending sessions will be marked as uploaded:")
+
+    # connect to database
+    db = database.db(db_settings["db_path"])
+    db.n_default_query_attempts = db_settings["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
+
+    # find sessions for which data was converted to BIDS but not yet uploaded
+    sessions_requiring_upload = db.find_mri_sessions_requiring_upload(exclude_skipped=True)
+    if sessions_requiring_upload == -1: terminate_after_error()
+
+    for session in sessions_requiring_upload:
+        session_id = session["id"]
+        data_file = session["data_file"]
+
+        # update session
+        db.update_mri_session(session_id, data_uploaded_dt=datetime.now().timestamp())
+        db.commit()
+
+        print(" - " + data_file)
+
+    # close connection to database
+    db.close()
+
+    # close log file
+    print("All pending files were marked as completed")
     close_log_file()
+
     sys.exit()
 
 # check if any upload folders were specified
