@@ -9,6 +9,29 @@ echo "             Anaconda and use the standard python3 package."
 echo "------------------------------------------------------------"
 echo ""
 
+# get installation options
+INSTALL_CRON=true
+while getopts "c:h" opt
+do
+   case "$opt" in
+      c) 
+        if [[ ${OPTARG,,} = "y" ]]; then
+          INSTALL_CRON=true
+        elif [[ ${OPTARG,,} = "n" ]]; then
+          INSTALL_CRON=false
+        else
+          echo "-c option argument must be 'y' or 'n'"
+          exit 0
+        fi
+        ;;
+      h) 
+        echo "Automated pipeline installation help. The current options are available:"
+        echo " -c [y/n]: enable/disable the installation of a cronjob that runs the pipeline on a schedule. By default, the cronjob is created."
+        exit 0
+        ;;
+   esac
+done
+
 # get directory containing current script and directory from which script is called
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 CALLING_DIR=$(pwd)
@@ -77,11 +100,14 @@ fi
 echo ""
 
 # set cronjob to run pipeline at the beginning of every hour
-# TODO: add flag to remove cronjobs (if we want to run this locally, this may be preferred)
-echo "Configuring cronjobs"
-CMD="0 * * * * export FSLDIR=$FSLDIR; . ${FSLDIR}/etc/fslconf/fsl.sh; /usr/bin/flock -n $SCRIPT_DIR/run_mri_pipeline.lock $SCRIPT_DIR/run_mri_pipeline.sh"
-(crontab -l ; echo "$CMD") 2>/dev/null | sort - | uniq - | crontab -
-sudo systemctl restart cron
+if [[ $INSTALL_CRON = true ]]; then
+  echo "Configuring cronjobs"
+  CMD="0 * * * * export FSLDIR=$FSLDIR; . ${FSLDIR}/etc/fslconf/fsl.sh; /usr/bin/flock -n $SCRIPT_DIR/run_mri_pipeline.lock $SCRIPT_DIR/run_mri_pipeline.sh"
+  (crontab -l ; echo "$CMD") 2>/dev/null | sort - | uniq - | crontab -
+  sudo systemctl restart cron
+else
+  echo "Cronjob configuration skipped"
+fi
 
 
 # deactivate python environment
