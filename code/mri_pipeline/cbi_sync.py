@@ -150,18 +150,23 @@ for data_file in cbi_data["data_files"]:
         if participant_id == -1: terminate_after_error()
         if participant_id is None: # participant not in database -> add and get new ID
 
-            # get all current deidentified IDs
-            deidentified_ids = []
-            all_participant_data = db.get_all_participant_data()
-            for participant in all_participant_data:
-                deidentified_ids.append(participant["deidentified_id"])
-            deidentified_ids = tuple(deidentified_ids)
+            # add deidentified ID
+            if settings_study["deidentify_data"]:
+                # get all current deidentified IDs
+                deidentified_ids = []
+                all_participant_data = db.get_all_participant_data()
+                for participant in all_participant_data:
+                    deidentified_ids.append(participant["deidentified_id"])
+                deidentified_ids = tuple(deidentified_ids)
 
-            new_deidentified_id = study.generate_deidentified_id(used_ids=deidentified_ids, 
-                                                                 prefix=settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                 digits=settings_study["deidentified_subject_identifier_format"]["desired_digits"])
-            
+                new_deidentified_id = study.generate_deidentified_id(used_ids=deidentified_ids, 
+                                                                    prefix=settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
+                                                                    digits=settings_study["deidentified_subject_identifier_format"]["desired_digits"])
 
+            else:
+                 new_deidentified_id = None
+
+            # add participant
             participant_id = db.add_participant(study_id=participant_info["subject_id"], 
                                                 deidentified_id=new_deidentified_id,
                                                 group_assignment="patient")

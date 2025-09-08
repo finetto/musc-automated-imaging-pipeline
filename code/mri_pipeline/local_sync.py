@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import shutil
 from datetime import datetime
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
@@ -15,7 +16,7 @@ from common import cbi_parse
 from common import study, study_settings
 
 # global variables
-log_file_name = os.path.join(rootdir,"log","cbi_sync_log.txt")
+log_file_name = os.path.join(rootdir,"log","local_sync_log.txt")
 log_file = None
 original_stdout = None
 
@@ -106,13 +107,23 @@ if settings_db == -1:
     print("ERROR: Unable to load database settings from \"" + db_settings_file + "\".")
     terminate_after_error()
 
-# get available sessions from local folder
-#cbi_data = cbi_query.get_sessions(settings_cbi["connection"]["host"], 
-#                                  settings_cbi["remote_data_dir"], 
-#                                  settings_cbi["connection"]["credentials_file"])
-#if cbi_data == -1: terminate_after_error()
-# TODO: get local data
-local_data = -1
+# scan local data folder
+local_data_dir = Path(settings_local_sync["local_data_dir"])
+print(settings_local_sync["local_data_dir"])
+print(local_data_dir)
+if not local_data_dir.exists():
+    print("ERROR: Could not find local data directory.")
+    terminate_after_error()
+
+local_data = {"data_files": [], "summary_files": []}
+
+for dirpath, dirnames, filenames in os.walk(settings_local_sync["local_data_dir"]):
+
+    for filename in filenames:
+        if filename.endswith(".zip"):
+            local_data["data_files"].append(os.path.join(dirpath,filename))
+        elif filename.endswith("_SUMMARY.txt"):
+            local_data["summary_files"].append(os.path.join(dirpath,filename))
 
 
 # connect to database
@@ -120,7 +131,10 @@ db = database.db(settings_db["db_path"])
 db.n_default_query_attempts = settings_db["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
 # process all session data files
-for data_file in local_data["data_files"]:
+for data_file_path in local_data["data_files"]:
+
+    data_file = os.path.basename(data_file_path)
+    data_file_dir = os.path.dirname(data_file_path)
 
     # check if this session is already in database
     session_id = db.get_mri_session_id(data_file=data_file)
@@ -151,18 +165,23 @@ for data_file in local_data["data_files"]:
         if participant_id == -1: terminate_after_error()
         if participant_id is None: # participant not in database -> add and get new ID
 
-            # get all current deidentified IDs
-            deidentified_ids = []
-            all_participant_data = db.get_all_participant_data()
-            for participant in all_participant_data:
-                deidentified_ids.append(participant["deidentified_id"])
-            deidentified_ids = tuple(deidentified_ids)
+            # add deidentified ID
+            if settings_study["deidentify_data"]:
+                # get all current deidentified IDs
+                deidentified_ids = []
+                all_participant_data = db.get_all_participant_data()
+                for participant in all_participant_data:
+                    deidentified_ids.append(participant["deidentified_id"])
+                deidentified_ids = tuple(deidentified_ids)
 
-            new_deidentified_id = study.generate_deidentified_id(used_ids=deidentified_ids, 
-                                                                 prefix=settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                 digits=settings_study["deidentified_subject_identifier_format"]["desired_digits"])
-            
+                new_deidentified_id = study.generate_deidentified_id(used_ids=deidentified_ids, 
+                                                                    prefix=settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
+                                                                    digits=settings_study["deidentified_subject_identifier_format"]["desired_digits"])
 
+            else:
+                 new_deidentified_id = None
+
+            # add participant
             participant_id = db.add_participant(study_id=participant_info["subject_id"], 
                                                 deidentified_id=new_deidentified_id,
                                                 group_assignment="patient")
@@ -200,7 +219,10 @@ for session in sessions_with_missing_summary:
     # look for summary files matching this session name
     matching_summary_file = None
     if (session_name != None) and (session_name != ""):
-        for summary_file in local_data["summary_files"]:
+        for summary_file_path in local_data["summary_files"]:
+            summary_file = os.path.basename(summary_file_path)
+            summary_file_dir = os.path.dirname(summary_file_path)
+
             if session_name in summary_file:
                 matching_summary_file = summary_file
                 break
@@ -209,7 +231,10 @@ for session in sessions_with_missing_summary:
     if (not matching_summary_file) and (data_recorded_date != None) and (data_recorded_date != "") and (data_recorded_time != None) and (data_recorded_time != ""):
         dt_search_str = "_" + data_recorded_date.replace("/","") + "_" + data_recorded_time.replace(":","") + "_"
 
-        for summary_file in local_data["summary_files"]:
+        for summary_file_path in local_data["summary_files"]:
+            summary_file = os.path.basename(summary_file_path)
+            summary_file_dir = os.path.dirname(summary_file_path)
+
             if dt_search_str in summary_file:
                 matching_summary_file = summary_file
                 found_by_date = True
@@ -227,7 +252,6 @@ for session in sessions_with_missing_summary:
 # commit changes
 db.commit()
 
-
 # copy missing data files
 sessions_requiring_data_download = db.find_mri_sessions_requiring_data_download(exclude_skipped=True)
 if sessions_requiring_data_download == -1: terminate_after_error()
@@ -244,14 +268,15 @@ for session in sessions_requiring_data_download:
 
     # copy file
     print("Copying \"" + data_file + "\"")
-    #success = cbi_query.download_file(data_file, 
-    #                                  settings_cbi["connection"]["host"], 
-    #                                  settings_cbi["remote_data_dir"], 
-    #                                  settings_cbi["connection"]["credentials_file"], 
-    #                                  session_dir,
-    #                                  show_progress=False)
-    # TODO: copy file to work directory
-    success = 1
+    for data_file_path in local_data["data_files"]:
+
+        data_file_i = os.path.basename(data_file_path)
+        data_file_dir_i = os.path.dirname(data_file_path)
+
+        if data_file==data_file_i:
+            shutil.copyfile(data_file_path, str(session_dir.joinpath(data_file)))
+            success = 1
+            break
 
     # update database
     if success == 1:
@@ -280,14 +305,14 @@ for session in sessions_requiring_summary_download:
 
     # download file
     print("Copying \"" + summary_file + "\"")
-    #success = cbi_query.download_file(summary_file, 
-    #                                  settings_cbi["connection"]["host"], 
-    #                                  settings_cbi["remote_data_dir"], 
-    #                                  settings_cbi["connection"]["credentials_file"], 
-    #                                  session_dir,
-    #                                  show_progress=False)
-    # TODO: copy file to work directory
-    success = 1
+    for summary_file_path in local_data["summary_files"]:
+        summary_file_i = os.path.basename(summary_file_path)
+        summary_file_dir_i = os.path.dirname(summary_file_path)
+
+        if summary_file==summary_file_i:
+            shutil.copyfile(summary_file_path, str(session_dir.joinpath(summary_file)))
+            success = 1
+            break
 
     # update database
     if success == 1:

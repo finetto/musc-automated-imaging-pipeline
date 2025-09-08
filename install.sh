@@ -77,6 +77,7 @@ fi
 echo ""
 
 # set cronjob to run pipeline at the beginning of every hour
+# TODO: add flag to remove cronjobs (if we want to run this locally, this may be preferred)
 echo "Configuring cronjobs"
 CMD="0 * * * * export FSLDIR=$FSLDIR; . ${FSLDIR}/etc/fslconf/fsl.sh; /usr/bin/flock -n $SCRIPT_DIR/run_mri_pipeline.lock $SCRIPT_DIR/run_mri_pipeline.sh"
 (crontab -l ; echo "$CMD") 2>/dev/null | sort - | uniq - | crontab -
