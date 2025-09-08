@@ -73,11 +73,11 @@ __NOTE:__ this file is not generated automatically and will always need to be cr
 The pipeline will optionally also look for data in a local folder. This can be used instead of the syncronization with CBI Home, or in addition to it. CBI Home sync is executed first - if both options are enabled, data on CBI Home will be prioritized.
 
  <details>
-<summary>database_settings.json</summary>
+<summary>local_sync_settings.json</summary>
 
 ```json
 {
-    "use_local_sync": true,
+    "use_local_sync": false,
     "local_data_dir": ""
 }
 ```
