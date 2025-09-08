@@ -15,7 +15,7 @@ Currently, the pipeline supports MR data recorded at CBI.
 ## Installation
 The pipeline can be installed either on Linux or WSL2. The installation script leverages the `apt` package manager, therefore Ubuntu and similar distributions are recommended.\
 To use the software, download the repository to an appropriate folder (e.g. /opt). Navigate to the directory and make sure the `install.sh` script is executable (`chmod +x install.sh`). Then execute `./install.sh`.\
-The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available. Finally, the script will create a cronjob that will run the pipeline on a schedule. If this is not desired, run the installation script with the '-c' option: `./install.sh -c n`.\
+The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available. Finally, the script will create a cronjob that will run the pipeline on a schedule. If this is not desired, run the installation script with the '-c' option: `./install.sh -c n`.
 
 <details>
 <summary>Notes on FSL</summary>
