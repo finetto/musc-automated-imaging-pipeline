@@ -188,7 +188,7 @@ for session in sessions_requiring_validation:
             continue
 
         # check if there is neither a matching series info nor a matching series (sometimes series numbers are skipped)
-        if ((matching_series)==None) and len(matching_series_info)<1:
+        if ((matching_series)==None) and (len(matching_series_info)<1):
             continue
 
         #initialize errors

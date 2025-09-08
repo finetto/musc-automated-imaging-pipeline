@@ -183,6 +183,10 @@ for session in sessions_requiring_validation:
         #initialize errors
         errors_i = ""
 
+        # check if the series is not available neither in the dcm2nixx log nor in the database  (sometimes series numbers are skipped)
+        if ((matching_series)==None) and (len(matching_conversion_info)<1):
+            continue
+
         # make sure we found at least one matching converted file
         if len(matching_conversion_info)<1:
             errors.append({"series_number": series_number,
