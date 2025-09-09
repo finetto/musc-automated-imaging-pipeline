@@ -7,6 +7,8 @@ import json
 def _init():
     
     settings = {
+        "title": "",
+        "description": "",
         "subject_identifier_format": {
             "regex": "[mM][0-9][0-9]+",
             "desired_prefix": "sub-",

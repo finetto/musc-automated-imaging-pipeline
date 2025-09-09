@@ -14,15 +14,15 @@ def _init():
             "password": ""
         },
         "errors": {
-            "send_notification": True,
+            "send_notification": False,
             "subject": "Automated Pipeline: Error during pipeline execution",
             "recipients": []
         },
         "mri_data_validation": {
-            "send_notification": True,
+            "send_notification": False,
             "subject": "Automated Pipeline: MRI data validation required",
             "recipients": [],
-            "send_reminder": True,
+            "send_reminder": False,
             "reminder_interval_h": 24
         }
     }

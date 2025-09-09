@@ -147,9 +147,10 @@ for session in sessions_requiring_validation:
             db.commit()
 
             # queue notification
-            send_validation_error_notification = True
-            print("WARNING: Waited for more than " + str(settings_processing["mri"]["summary_file_wait_timeout_h"]) + " hours for summary file of session \"" + session_name + "\".\nThis session will be marked as validated and will be processed without the summary file.\n\n")
-            validation_error_notification = validation_error_notification + "Waited for more than " + str(settings_processing["mri"]["summary_file_wait_timeout_h"]) + " hours for summary file of session \"" + session_name + "\".\nThis session will be marked as validated and will be processed without the summary file.\n\n"
+            if settings_processing["mri"]["summary_file_wait_timeout_h"]>0:
+                send_validation_error_notification = True
+                print("WARNING: Waited for more than " + str(settings_processing["mri"]["summary_file_wait_timeout_h"]) + " hours for summary file of session \"" + session_name + "\".\nThis session will be marked as validated and will be processed without the summary file.\n\n")
+                validation_error_notification = validation_error_notification + "Waited for more than " + str(settings_processing["mri"]["summary_file_wait_timeout_h"]) + " hours for summary file of session \"" + session_name + "\".\nThis session will be marked as validated and will be processed without the summary file.\n\n"
 
         continue
 

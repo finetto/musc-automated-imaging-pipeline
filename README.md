@@ -111,6 +111,8 @@ The study configuration file contains settings that determine the format of the 
 
 ```json
 {
+    "title": "DEMO",
+    "description": "DEMO study",
     "subject_identifier_format": {
         "regex": "[mM][0-9][0-9]+",
         "desired_prefix": "sub-",
@@ -130,6 +132,8 @@ The study configuration file contains settings that determine the format of the 
 }
 ```
 
+`title` is the short title of the study\
+`description` is a more detailed description of the study\ 
 `subject_identifier_format`->`regex` is a regular expression used to find the subject ID in the raw data file names\
 `subject_identifier_format`->`desired_prefix` is the desired prefix that will be added to the subject ID\
 `subject_identifier_format`->`desired_start_str` is a string that will be added between the prefix and the subject number\

@@ -101,6 +101,18 @@ if db_settings == -1:
 db = database.db(db_settings["db_path"])
 db.n_default_query_attempts = db_settings["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
+# check if current study is in database
+current_study = None
+if (settings_study["title"] != None) and (isinstance(settings_study["title"], str)) and (settings_study["title"] != ""):
+    res = db.get_study(title=settings_study["title"])
+    if res == -1: terminate_after_error()
+    if res is not None:
+        current_study = res
+    else:
+        res = db.add_study(title=settings_study["title"], description=settings_study["description"])
+        if res == -1: terminate_after_error()
+        current_study = res
+
 # find sessions for which data is available but not yet extracted and converted to nifti
 # skip sessions that should be skipped
 sessions_requiring_conversion = db.find_mri_sessions_requiring_conversion_to_nifti(exclude_skipped=True)
@@ -204,7 +216,7 @@ for session in sessions_requiring_conversion:
 
         series_description = all_series_descriptions[index]
 
-        db.add_mri_series(participant_id=participant_id, session_id=session_id, series_number=series_number, description=series_description)
+        db.add_mri_series(study=current_study,participant_id=participant_id, session_id=session_id, series_number=series_number, description=series_description)
 
     # update session
     db.update_mri_session(session_id, converted_to_nifti_dt=datetime.now().timestamp())

@@ -130,6 +130,18 @@ for dirpath, dirnames, filenames in os.walk(settings_local_sync["local_data_dir"
 db = database.db(settings_db["db_path"])
 db.n_default_query_attempts = settings_db["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
+# check if current study is in database
+current_study = None
+if (settings_study["title"] != None) and (isinstance(settings_study["title"], str)) and (settings_study["title"] != ""):
+    res = db.get_study(title=settings_study["title"])
+    if res == -1: terminate_after_error()
+    if res is not None:
+        current_study = res
+    else:
+        res = db.add_study(title=settings_study["title"], description=settings_study["description"])
+        if res == -1: terminate_after_error()
+        current_study = res
+
 # process all session data files
 for data_file_path in local_data["data_files"]:
 
@@ -182,7 +194,8 @@ for data_file_path in local_data["data_files"]:
                  new_deidentified_id = None
 
             # add participant
-            participant_id = db.add_participant(study_id=participant_info["subject_id"], 
+            participant_id = db.add_participant(study=current_study,
+                                                study_id=participant_info["subject_id"], 
                                                 deidentified_id=new_deidentified_id,
                                                 group_assignment="patient")
             
@@ -191,7 +204,8 @@ for data_file_path in local_data["data_files"]:
             print("New participant found: " + participant_info["subject_id"])
 
     # add row to session table
-    session_id = db.add_mri_session(participant_id = participant_id,
+    session_id = db.add_mri_session(study=current_study,
+                                participant_id = participant_id,
                                 participant_session_id = participant_info["session_id"],
                                 data_file = data_file,
                                 description = session_info["description"],
@@ -268,6 +282,7 @@ for session in sessions_requiring_data_download:
 
     # copy file
     print("Copying \"" + data_file + "\"")
+    success = 0
     for data_file_path in local_data["data_files"]:
 
         data_file_i = os.path.basename(data_file_path)

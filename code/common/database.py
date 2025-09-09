@@ -63,9 +63,16 @@ class db:
 
         # make sure all tables are in the database
         try:
+            # create studies table if it doesn't exist
+            self._cursor.execute("CREATE TABLE IF NOT EXISTS studies (\
+                                id INTEGER PRIMARY KEY, \
+                                title TEXT, \
+                                description TEXT);")
+            
             # create participants table if it doesn't exist
             self._cursor.execute("CREATE TABLE IF NOT EXISTS participants (\
                                 id INTEGER PRIMARY KEY, \
+                                study TEXT, \
                                 study_id TEXT, \
                                 deidentified_id TEXT, \
                                 group_assignment TEXT);")
@@ -73,6 +80,7 @@ class db:
             # create mri sessions table if it doesn't exist
             self._cursor.execute("CREATE TABLE IF NOT EXISTS mri_sessions (\
                                 id INTEGER PRIMARY KEY, \
+                                study TEXT, \
                                 participant_id INTEGER, \
                                 participant_session_id TEXT, \
                                 data_file TEXT, \
@@ -97,6 +105,7 @@ class db:
             # create mri scans table if it doesn't exist
             self._cursor.execute("CREATE TABLE IF NOT EXISTS mri_series (\
                                 id INTEGER PRIMARY KEY, \
+                                study TEXT, \
                                 participant_id INTEGER, \
                                 session_id INTEGER, \
                                 series_number INTEGER, \
@@ -111,6 +120,17 @@ class db:
                                 duplicate_series TEXT, \
                                 skip_processing INTEGER, \
                                 data_converted_dt REAL);")
+            
+            # participants, mri_sessions and mri_series tables originally did not have the "study" column
+            # therefore, we need to check if it should be added
+            if not self.column_exists(table="participants", column="study"):
+                self._cursor.execute("ALTER TABLE participants ADD COLUMN study TEXT;")
+
+            if not self.column_exists(table="mri_sessions", column="study"):
+                self._cursor.execute("ALTER TABLE mri_sessions ADD COLUMN study TEXT;")
+
+            if not self.column_exists(table="mri_series", column="study"):
+                self._cursor.execute("ALTER TABLE mri_series ADD COLUMN study TEXT;")
 
             # commit changes (just to be safe, this does not seem to be necessary but doesn't hurt)
             self._connection.commit()
@@ -222,6 +242,43 @@ class db:
         
         # check result
         return (res!=None) and (len(res)>0)
+    
+    # check if column exists
+    def column_exists(self, table="", column=""):
+
+        # make sure connection is open
+        if (self._connection == None) or (self._cursor == None):
+            print("ERROR: Database not opened.")
+            return -1
+        
+        # make sure table is a valid string
+        if (table == None) or (not isinstance(table, str)) or (table == ""):
+            print("ERROR: Invalid table name.")
+            return -1
+        
+        # make sure column is a valid string
+        if (column == None) or (not isinstance(column, str)) or (column == ""):
+            print("ERROR: Invalid column name.")
+            return -1
+
+        # generate query
+        cmd = "PRAGMA table_info(" + table + ")"
+        
+        # execute query
+        res = self.execute(cmd)
+        if res == -1:
+            print("ERROR: Could not check if column exists.")
+            return -1
+        
+        column_found = False
+        for column_info in res:
+            if column_info[1]==column:
+                column_found = True
+                break
+        
+        # check result
+        return column_found
+
     
     # add record
     def add_record(self, table_name, query_args):
@@ -388,8 +445,25 @@ class db:
         else:
             return None
         
+    # add study to database
+    def add_study(self,
+                  title = None,
+                  description = None):
+
+        # get input arguments
+        args = locals()
+
+        # get query arguments from input arguments
+        query_args = self.dict_to_query_input(args)
+
+        # update table
+        res = self.add_record("studies", query_args)
+
+        return res
+
     # add participant to database
     def add_participant(self,
+                        study = None,
                         study_id = None,
                         deidentified_id = None,
                         group_assignment = None):
@@ -407,6 +481,7 @@ class db:
         
     # add mri session to database
     def add_mri_session(self,
+                    study = None,
                     participant_id = None,
                     participant_session_id = None,
                     data_file = None,
@@ -441,6 +516,7 @@ class db:
     
     # add mri scan to database
     def add_mri_series(self,
+                       study = None,
                        participant_id = None,
                        session_id = None,
                        series_number = None,
@@ -467,8 +543,25 @@ class db:
 
         return res
     
+    # update study
+    def update_study(self,
+                  title = None,
+                  description = None):
+        
+        # get input arguments
+        args = locals()
+
+        # get query arguments from input arguments
+        query_args = self.dict_to_query_input(args, ("id",))
+
+        # update table
+        res = self.update_record("studies", id, query_args)
+
+        return res
+    
     # update participant
     def update_participant(self, id, 
+                           study = None,
                            study_id = None,
                            deidentified_id = None,
                            group_assignment = None):
@@ -486,6 +579,7 @@ class db:
 
     # update mri session
     def update_mri_session(self, id, 
+                       study = None,
                        participant_id = None,
                        participant_session_id = None,
                        data_file = None,
@@ -519,7 +613,8 @@ class db:
         return res
         
      # update mri scan
-    def update_mri_series(self, id, 
+    def update_mri_series(self, id,
+                       study = None, 
                        participant_id = None,
                        session_id = None,
                        series_number = None,
@@ -546,8 +641,29 @@ class db:
 
         return res
     
+    # clear values from study
+    def clear_values_from_study(self,
+                  title = None,
+                  description = None):
+        
+        # get input arguments
+        args = locals()
+
+        # get query arguments from input arguments
+        query_args = self.dict_to_query_input(args, ("id",))
+
+        # set all values to None
+        for i in range(len(query_args["values"])):
+            query_args["values"][i] = None
+
+        # update table
+        res = self.update_record("studies", id, query_args)
+
+        return res
+
     # clear values from participant
     def clear_values_from_participant(self, id, 
+                           study = None,
                            study_id = None,
                            deidentified_id = None,
                            group_assignment = None):
@@ -568,7 +684,8 @@ class db:
         return res
 
     # clear values from mri session
-    def clear_values_from_mri_session(self, id, 
+    def clear_values_from_mri_session(self, id,
+                       study = None, 
                        participant_id = None,
                        participant_session_id = None,
                        data_file = None,
@@ -606,7 +723,8 @@ class db:
         return res
         
     # clear values from mri series
-    def clear_values_from_mri_series(self, id, 
+    def clear_values_from_mri_series(self, id,
+                       study = None, 
                        participant_id = None,
                        session_id = None,
                        series_number = None,
@@ -637,6 +755,10 @@ class db:
 
         return res
     
+    # remove study
+    def remove_study(self, id):
+        return self.remove_record("studies", id)
+
     # remove participant
     def remove_participant(self, id):
         return self.remove_record("participants", id)
@@ -649,8 +771,22 @@ class db:
     def remove_mri_series(self, id):
         return self.remove_record("mri_series", id)
     
+    # get study from database
+    def get_study(self, title=None, description=None):
+
+        # get input arguments
+        args = locals()
+        keys = self.remove_keys_from_dict(args, ("self",))
+
+        if len(keys)<1:
+            res = -1
+        else:
+            res = self.get_record_id_by_keys("studies", keys)
+
+        return res
+
     # get participant id from database
-    def get_participant_id(self, study_id=None, deidentified_id=None):
+    def get_participant_id(self, study=None, study_id=None, deidentified_id=None):
 
         # get input arguments
         args = locals()
@@ -664,7 +800,7 @@ class db:
         return res
         
     # get participant data
-    def get_participant_data(self, id=None, study_id=None, deidentified_id=None, return_only_first=False, sort_column=None, sort_dir=None):
+    def get_participant_data(self, id=None, study=None, study_id=None, deidentified_id=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
@@ -730,7 +866,7 @@ class db:
         return res  
     
     # get mri session id from database
-    def get_mri_session_id(self, data_file=None):
+    def get_mri_session_id(self, data_file=None, study=None):
 
         # get input arguments
         args = locals()
@@ -744,7 +880,7 @@ class db:
         return res
     
     # get MRI session data
-    def get_mri_session_data(self, id=None, data_file=None, participant_id=None, return_only_first=False, sort_column=None, sort_dir=None):
+    def get_mri_session_data(self, id=None, data_file=None, study=None, participant_id=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
@@ -810,7 +946,7 @@ class db:
         return res 
     
     # get MRI scan data
-    def get_mri_series_data(self, id=None, session_id=None, participant_id=None, series_number=None, return_only_first=False, sort_column=None, sort_dir=None):
+    def get_mri_series_data(self, id=None, session_id=None, study=None, participant_id=None, series_number=None, return_only_first=False, sort_column=None, sort_dir=None):
 
         # get input arguments
         args = locals()
