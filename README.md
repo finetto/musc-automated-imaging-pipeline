@@ -15,7 +15,7 @@ Currently, the pipeline supports MR data recorded at CBI.
 ## Installation
 The pipeline can be installed either on Linux or WSL2. The installation script leverages the `apt` package manager, therefore Ubuntu and similar distributions are recommended.\
 To use the software, download the repository to an appropriate folder (e.g. /opt). Navigate to the directory and make sure the `install.sh` script is executable (`chmod +x install.sh`). Then execute `./install.sh`.\
-The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available. Finally, the script will create a cronjob that will run the pipeline on a schedule. If this is not desired, run the installation script with the '-c' option: `./install.sh -c n`.
+The installation script will install all required OS packages and will create a virtual Python environment for the application. The script will also make sure that [FSL](https://fsl.fmrib.ox.ac.uk/fsl) is available. 
 
 <details>
 <summary>Notes on FSL</summary>
@@ -27,7 +27,7 @@ export FSLDIR=/usr/local/fsl
 ```
  </details> <br/>
 
-The script will then proceed to create all necessary directories. Finally, a cronjob will be created under the current user that will run the pipeline every hour. You can change the relevant line in the installation script if you need a different interval.
+The script will then proceed to create all necessary directories. Finally, a cronjob will be created under the current user that will run the pipeline every hour. You can change the relevant line in the installation script if you need a different interval. If running the pipeline on a schedule is not desired, run the installation script with the '-c' option to skip the cronjob creation: `./install.sh -c n`.
 
 ## Configuration
 The software stores its configuration in multiple .json files located in the settings folder. Most of these files will be automatically generated when the pipeline is executed for the first time, but will likely cause errors as the default setting are incorrect. You can either modify the generated files, or create them manually.
