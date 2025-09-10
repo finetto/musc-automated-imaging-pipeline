@@ -30,7 +30,7 @@ export FSLDIR=/usr/local/fsl
 The script will then proceed to create all necessary directories. Finally, a cronjob will be created under the current user that will run the pipeline every hour. You can change the relevant line in the installation script if you need a different interval. If running the pipeline on a schedule is not desired, run the installation script with the '-c' option to skip the cronjob creation: `./install.sh -c n`.
 
 ## Configuration
-The software stores its configuration in multiple .json files located in the settings folder. Most of these files will be automatically generated when the pipeline is executed for the first time, but will likely cause errors as the default setting are incorrect. You can either modify the generated files, or create them manually.
+The software stores its configuration in multiple .json files located in the settings folder. Most of these files will be automatically generated when the pipeline is executed for the first time, but will likely cause errors as the default setting may be incorrect. You can either modify the generated files, or create them manually.
 
 ### CBI configuration
 These settings are needed to connect to the CBI Home server and to navigate to the correct project folder.
@@ -299,10 +299,10 @@ The ID needs to be added as a string to the settings file, meaning it needs to b
 
  </details>
 
- If you'd like to upload data to folders owned by a different account, share those folders with the developer account and take note of the correct folder IDs.
+ If you'd like to upload data to folders owned by a different Box account, share those folders with the developer account and take note of the correct folder IDs.
 
  ## Running the pipeline
- Once configured, the pipeline will run automatically every hour. User interaction is only needed for data validation, for exluding or including certain datasets and, if desired, for resetting the processing stage of one or more datasets.\
+ If the scheduled execution was enabled during installation, the pipeline will run automatically every hour. Otherwise, the pipeline can be executed manually by running the `run_mri_pipeline.sh` script. User interaction is only needed for data validation, for exluding or including certain datasets and, if desired, for resetting the processing stage of one or more datasets.\
  The user can interact with the pipeline through the _Data Viewer_ GUI. The Data Viewer can be accessed by running the `run_data_viewer.sh` script.
 
  ### Participants
