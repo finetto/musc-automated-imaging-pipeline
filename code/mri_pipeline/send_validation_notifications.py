@@ -119,9 +119,9 @@ for session in sessions_requiring_first_notification:
     sessions_receiving_notification.append(session)
 
 if n_first_notifications == 1:
-    first_notification_text = "One new session was downloaded from CBI Home. Please validate subject ID and session ID:\n" + first_notification_text
+    first_notification_text = "One new session was discovered. Please validate subject ID and session ID:\n" + first_notification_text
 elif n_first_notifications > 1:
-    first_notification_text = str(n_first_notifications) + " new sessions were downloaded from CBI Home. Please validate subject IDs and session IDs:\n" + first_notification_text
+    first_notification_text = str(n_first_notifications) + " new sessions were discovered. Please validate subject IDs and session IDs:\n" + first_notification_text
 
 
 
