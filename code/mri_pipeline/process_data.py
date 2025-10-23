@@ -258,13 +258,16 @@ for session in sessions_requiring_conversion:
         os.mkdir(session_dstdir)
 
     data_file_srcpath = session_dir.joinpath(data_file)
-    summary_file_srcpath = session_dir.joinpath(session["summary_file"])
+    if (session["summary_file"] != None) and (session["summary_file"] != ""):
+        summary_file_srcpath = session_dir.joinpath(session["summary_file"])
+    else:
+        summary_file_srcpath = None
 
     if data_file_srcpath.exists():
         data_file_dstpath = session_dstdir.joinpath(data_file)
         shutil.copyfile(str(data_file_srcpath), str(data_file_dstpath))
 
-    if summary_file_srcpath.exists():
+    if (summary_file_srcpath != None) and (summary_file_srcpath.exists()):
         summary_file_dstpath = session_dstdir.joinpath(session["summary_file"])
         shutil.copyfile(str(summary_file_srcpath), str(summary_file_dstpath))
 
