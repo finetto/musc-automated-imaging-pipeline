@@ -43,7 +43,7 @@ cd $SCRIPT_DIR
 echo "Installing all needed packages"
 sudo apt update
 sudo apt install cmake gcc g++ wget\
-  python3 python3-pip \
+  python3 python3-pip python3-virtualenv\
   dc mesa-utils gedit pulseaudio libquadmath0 libgtk2.0-0 firefox libgomp1 \
   libxcb-cursor-dev \
   -y
@@ -51,7 +51,6 @@ echo ""
 
 # install dedicated python virtual environment
 echo "Installing dedicated virtual environment"
-sudo pip install virtualenv
 if [ -d .automated_pipeline_env ] ; then
 echo ""
   read -p "Detected existing virtual environment. Would you like to delete it and create it again [y/n]? " user_input
