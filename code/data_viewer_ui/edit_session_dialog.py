@@ -433,7 +433,10 @@ class edit_session_dialog(QDialog):
             return
         
         # generate new deidentified id
-        new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
+        new_deidentified_id = None
+        
+        if self._settings_study["deidentify_data"]:
+            new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
                                                                  prefix=self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
                                                                  digits=self._settings_study["deidentified_subject_identifier_format"]["desired_digits"])
 
