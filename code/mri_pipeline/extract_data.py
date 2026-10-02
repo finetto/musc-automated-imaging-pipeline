@@ -142,8 +142,13 @@ for session in sessions_requiring_conversion:
 
         # extract
         print("Extracting \"" + data_file + "\"")
-        with zipfile.ZipFile(zipped_file_path,"r") as zipped_file:
-            zipped_file.extractall(path=session_dir)
+        try:
+            with zipfile.ZipFile(zipped_file_path,"r") as zipped_file:
+                zipped_file.extractall(path=session_dir)
+        except Exception as e:
+            print("\t extraction of \"" + data_file + "\" failed.")
+            continue
+
 
     # get dicom folder and move it to main session folder
     dicom_folder_src = session_dir.joinpath(session_name).joinpath("dicom")

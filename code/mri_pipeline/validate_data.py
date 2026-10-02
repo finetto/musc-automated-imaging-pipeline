@@ -123,7 +123,7 @@ for session in sessions_requiring_validation:
 
     # get all series for this session
     session_series = db.get_mri_series_data(session_id=session_id)
-    if len(session_series) < 1:
+    if (session_series is None) or (session_series == -1) or len(session_series) < 1:
         print("ERROR: No series found in database for \"" + data_file + "\".")
         terminate_after_error()
 
@@ -142,7 +142,7 @@ for session in sessions_requiring_validation:
 
     # get nifti folder - make sure previous conversion results are removed
     nifti_folder = convert_folder.joinpath("nifti")
-    if not convert_folder.exists():
+    if not nifti_folder.exists():
         print("ERROR: Unable to find nifti data folder for \"" + data_file + "\".")
         terminate_after_error()
 
@@ -167,7 +167,13 @@ for session in sessions_requiring_validation:
     # validate converted files
     converted_series = []
     errors = []
-    max_series = max(conversion_summary, key=lambda conversion_info:conversion_info["series_number"])["series_number"]
+    max_series = -1
+    if len(conversion_summary) > 0:
+        max_series = max(conversion_summary, key=lambda conversion_info:conversion_info["series_number"])["series_number"]
+    else:
+        print("ERROR: No converted series found for \"" + data_file + "\".")
+        terminate_after_error()
+
 
     for series_number in range(1,max_series+1):
 
@@ -245,7 +251,7 @@ for session in sessions_requiring_validation:
         validation_error_notification = validation_error_notification + "\n\n"
 
     # make sure all series have a match
-    if len(converted_series) != max_series:
+    if (max_series >=0) and (len(converted_series) != max_series):
         send_validation_error_notification = True
         print("WARNING: Could not find matching files for some series in session \"" + session_name + "\".")
         validation_error_notification = validation_error_notification + "Could not find matching files for some series in session \"" + session_name + "\".\n\n"

@@ -196,7 +196,7 @@ def parse_dcm2niix_log(log_file):
         return -1
     
     # define search pattern
-    search_pattern = "Convert \d+ DICOM as "
+    search_pattern = r"Convert \d+ DICOM as "
 
     # parse file
     conversion_summary = []
@@ -218,7 +218,7 @@ def parse_dcm2niix_log(log_file):
                     continue
 
                 # get number of files
-                m2 = re.search("\d+",m.group())
+                m2 = re.search(r"\d+",m.group())
                 if not m2:
                     print("ERROR: could not find file number in dcm2niix log file \"" + log_file + "\":\n\t\"" + line + "\"")
                     continue

@@ -194,7 +194,7 @@ class edit_session_dialog(QDialog):
         self.ui.comboBox_group_assignment.blockSignals(False)
 
         if session_id != None:
-            m = re.search("\d+",session_id)
+            m = re.search(r"\d+",session_id)
             if m:
                 session_number = int(m.group())
             else:
@@ -280,6 +280,8 @@ class edit_session_dialog(QDialog):
             # get new skip processing flag
             new_skip_processing = self.ui.checkBox_skip_processing.isChecked()
 
+            # normailze current deidentified ID in case it is None
+            current_deidentified_id = current_deidentified_id or ""
 
             # update participant
             if (new_participant_id != None) and participant_is_editable:
@@ -382,9 +384,10 @@ class edit_session_dialog(QDialog):
     def pushButton_new_subject_id_clicked(self):
         
         # get desired format
-        desired_prefix = self._settings_study["subject_identifier_format"]["desired_prefix"]
-        desired_start_str = self._settings_study["subject_identifier_format"]["desired_start_str"]
-        desired_digits = self._settings_study["subject_identifier_format"]["desired_digits"]
+        idx = 0
+        desired_prefix = self._settings_study["subject_identifier_formats"][idx]["desired_prefix"]
+        desired_start_str = self._settings_study["subject_identifier_formats"][idx]["desired_start_str"]
+        desired_digits = self._settings_study["subject_identifier_formats"][idx]["desired_digits"]
         id_format = desired_prefix + desired_start_str + "{:0" + str(desired_digits) + "d}"
 
         # ask user for new id
@@ -400,25 +403,27 @@ class edit_session_dialog(QDialog):
             res = QMessageBox.warning(self, "Data Viewer", "This study ID is already used by a different participant.")
             return
 
-        # validate id
-        new_id_is_valid, alternative_new_id = data_viewer_utils.validate_id(new_subject_id, desired_prefix, desired_start_str, desired_digits)
+        # check which format was used for the new ID
+        used_format_idx = -1
+        valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(new_subject_id, self._settings_study["subject_identifier_formats"])
 
-        if not new_id_is_valid:
+        if valid_format_idx == -1: # no valid format found
 
             # make sure alternative ID is unique
             if alternative_new_id in self._all_study_ids:
-                    res = QMessageBox.warning(self,"Data Viewer","Could not generate a unique ID from the input.")
-                    return
+                res = QMessageBox.warning(self,"Data Viewer","Could not generate a unique ID from the input.")
+                return
 
             # ask user what to do
             if alternative_new_id != "":
 
                 res = QMessageBox.warning(self, "Data Viewer", 
-                                          "This study ID is not valid. Do you accept this alternative?\n\n" + alternative_new_id,
-                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                                            "This study ID is not valid. Do you accept this alternative?\n\n" + alternative_new_id,
+                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
 
                 if res == QMessageBox.Yes:
                     new_subject_id = alternative_new_id
+                    used_format_idx = alternative_format_idx
                     
                 else:
                     return
@@ -426,6 +431,9 @@ class edit_session_dialog(QDialog):
             else:
                 res = QMessageBox.warning(self,"Data Viewer","Invalid subject ID.")
                 return
+
+        else:
+            used_format_idx = valid_format_idx
             
         # ask user to confirm
         res = QMessageBox.question(self,"Data Viewer","Participant " + new_subject_id + " will be added to the database.\nPlease confirm")
@@ -434,11 +442,11 @@ class edit_session_dialog(QDialog):
         
         # generate new deidentified id
         new_deidentified_id = None
-        
+        idx = used_format_idx
         if self._settings_study["deidentify_data"]:
             new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
-                                                                 prefix=self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                 digits=self._settings_study["deidentified_subject_identifier_format"]["desired_digits"])
+                                                                 prefix=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"],
+                                                                 digits=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"])
 
         # add participant to database
 
@@ -450,7 +458,25 @@ class edit_session_dialog(QDialog):
         db = database.db(self._settings_db["db_path"])
         db.n_default_query_attempts = self._settings_db["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
-        participant_id = db.add_participant(study_id=new_subject_id, 
+        # check if current study is in database
+        current_study = None
+        if (self._settings_study["title"] != None) and (isinstance(self._settings_study["title"], str)) and (self._settings_study["title"] != ""):
+            res = db.get_study(title=self._settings_study["title"])
+            if res == -1: 
+                db.close()
+                return
+            if res is not None:
+                current_study = res
+            else:
+                res = db.add_study(title=self._settings_study["title"], description=self._settings_study["description"])
+                if res == -1: 
+                    db.close()
+                    return
+                current_study = res
+
+
+        participant_id = db.add_participant(study=current_study,
+                                                study_id=new_subject_id, 
                                                 deidentified_id=new_deidentified_id,
                                                 group_assignment="patient")
         if participant_id == -1:
@@ -478,6 +504,13 @@ class edit_session_dialog(QDialog):
             study_id = self.ui.comboBox_subject_id.currentText()
         else:
             return
+
+        # get used format - this is necessary to find the correct format of the deidentified ID
+        used_format_idx = 0 # default to first format
+        if study_id != "":
+            valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(study_id, self._settings_study["subject_identifier_formats"])
+            if valid_format_idx != -1:
+                used_format_idx = valid_format_idx
         
         # check db settings
         if (self._settings_db == None) or (self._settings_db == -1):
@@ -492,6 +525,9 @@ class edit_session_dialog(QDialog):
 
         # get data of corresponding participant
         _, current_deidentified_id, group_assignment = data_viewer_utils.get_participant_data_for_session(self, db, participant_id)
+
+        # normailze current deidentified ID in case it is None
+        current_deidentified_id = current_deidentified_id or ""
 
         # check if participant can be edited (has no converted sessions)
         participant_is_editable = data_viewer_utils.get_participant_editable(self, db, participant_id)
@@ -520,6 +556,12 @@ class edit_session_dialog(QDialog):
 
             if res == QMessageBox.Yes:
                 return
+            else:
+                # reset id
+                self.ui.lineEdit_deidentified_id.blockSignals(True)
+                self.ui.lineEdit_deidentified_id.setText(current_deidentified_id)
+                self.ui.lineEdit_deidentified_id.blockSignals(False)
+                return
 
         # make sure ID is unique
         if new_deidentified_id in self._all_deidentified_ids:
@@ -533,9 +575,10 @@ class edit_session_dialog(QDialog):
             return
         
         # make sure ID conforms to specified standard. Otherwise, alert user
-        desired_prefix = self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]
-        desired_start_str = self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"]
-        desired_digits = self._settings_study["deidentified_subject_identifier_format"]["desired_digits"]
+        idx = used_format_idx
+        desired_prefix = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]
+        desired_start_str = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"]
+        desired_digits = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"]
         
         new_id_is_valid, alternative_new_id = data_viewer_utils.validate_id(new_deidentified_id, desired_prefix, desired_start_str, desired_digits)
 
@@ -576,11 +619,25 @@ class edit_session_dialog(QDialog):
         
 
     def pushButton_generate_deidentifdied_id_clicked(self):
+
+        # get study ID
+        if self.ui.comboBox_subject_id.currentIndex() != 0:
+            study_id = self.ui.comboBox_subject_id.currentText()
+        else:
+            return
+
+        # get used format - this is necessary to find the correct format of the deidentified ID
+        used_format_idx = 0 # default to first format
+        if study_id != "":
+            valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(study_id, self._settings_study["subject_identifier_formats"])
+            if valid_format_idx != -1:
+                used_format_idx = valid_format_idx
         
         # generate new deidentified id
+        idx = used_format_idx
         new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
-                                                                 prefix=self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                 digits=self._settings_study["deidentified_subject_identifier_format"]["desired_digits"])
+                                                                 prefix=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"],
+                                                                 digits=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"])
         
         # set new id
         self.ui.lineEdit_deidentified_id.blockSignals(True)
@@ -667,7 +724,7 @@ class edit_session_dialog(QDialog):
 
                 # reset to previous id
                 if current_session_id != None:
-                    m = re.search("\d+",current_session_id)
+                    m = re.search(r"\d+",current_session_id)
                     if m:
                         session_number = int(m.group())
                     else:

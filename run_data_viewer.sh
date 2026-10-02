@@ -5,7 +5,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 CALLING_DIR=$(pwd)
 
 # move to script dir
-cd $SCRIPT_DIR
+cd "$SCRIPT_DIR"
 
 # activate virtual environment
 source .automated_pipeline_env/bin/activate
@@ -23,4 +23,4 @@ echo "Done"
 deactivate
 
 # move back to calling dir
-cd $CALLING_DIR
+cd "$CALLING_DIR"

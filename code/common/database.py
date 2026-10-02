@@ -544,7 +544,7 @@ class db:
         return res
     
     # update study
-    def update_study(self,
+    def update_study(self, id,
                   title = None,
                   description = None):
         
@@ -642,7 +642,7 @@ class db:
         return res
     
     # clear values from study
-    def clear_values_from_study(self,
+    def clear_values_from_study(self, id,
                   title = None,
                   description = None):
         

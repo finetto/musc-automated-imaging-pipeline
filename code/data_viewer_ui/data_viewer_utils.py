@@ -80,7 +80,7 @@ def validate_id(id, desired_prefix, desired_start_str, desired_digits):
     alternative_id = id
 
     # search for correct pattern
-    m = re.search(desired_prefix + desired_start_str + "\d+",id)
+    m = re.search(desired_prefix + desired_start_str + r"\d+",id)
     if m: # pattern found
         extracted_id = m.group()
         id_start = m.span()[0]
@@ -92,7 +92,7 @@ def validate_id(id, desired_prefix, desired_start_str, desired_digits):
             id_is_valid = False
 
         # verify correct number of digits
-        m2 = re.search("\d+",extracted_id)
+        m2 = re.search(r"\d+",extracted_id)
         if m2:
             numeric_part = m2.group()
             if len(numeric_part) < desired_digits:
@@ -112,7 +112,7 @@ def validate_id(id, desired_prefix, desired_start_str, desired_digits):
         id_is_valid = False
 
         # check if id contains any digits
-        m2 = re.search("\d+",id)
+        m2 = re.search(r"\d+",id)
         if m2:
             numeric_part = m2.group()
             if len(numeric_part) <= desired_digits:
@@ -129,3 +129,29 @@ def validate_id(id, desired_prefix, desired_start_str, desired_digits):
 def get_session_id_from_number(id_number, prefix, digits):
     id_format = prefix + "{:0" + str(digits) + "d}"
     return id_format.format(id_number)
+
+def get_used_format(id, subject_identifier_formats):
+
+     # loop through all formats and find the one that was used
+    valid_format_idx = -1
+    alternative_format_idx = -1
+    alternative_new_id = ""
+    for idx in range(0, len(subject_identifier_formats)):
+        desired_prefix = subject_identifier_formats[idx]["desired_prefix"]
+        desired_start_str = subject_identifier_formats[idx]["desired_start_str"]
+        desired_digits = subject_identifier_formats[idx]["desired_digits"]
+        new_id_is_valid, alternative_new_id_i = validate_id(id, desired_prefix, desired_start_str, desired_digits)
+
+        # done if a valid ID was found
+        if new_id_is_valid:
+            valid_format_idx = idx
+            alternative_format_idx = idx
+            alternative_new_id = alternative_new_id_i
+            break
+
+        # store first valid alternative ID
+        if (alternative_new_id_i != "") and (alternative_format_idx == -1):
+            alternative_format_idx = idx
+            alternative_new_id = alternative_new_id_i
+
+    return valid_format_idx, alternative_format_idx, alternative_new_id
