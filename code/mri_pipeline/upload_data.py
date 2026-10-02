@@ -219,11 +219,11 @@ for session in sessions_requiring_upload:
 
     # get series in session
     session_series = db.get_mri_series_data(session_id=session["id"])
-    if session_series == -1:
+    if (session_series == -1):
         print("ERROR: Unable to get series information for \"" + data_file + "\".")
         terminate_after_error()
     
-    if len(session_series)<1:
+    if (session_series is None) or len(session_series)<1:
         print("WARNING: No series found for \"" + data_file + "\".")
         issues_during_upload = True
         continue
@@ -264,9 +264,10 @@ for session in sessions_requiring_upload:
 
     # get deidentified data folder
     participant_deidentified_id = participant["deidentified_id"]
-    participant_deidentified_data_folder = bids_folder.joinpath(participant_deidentified_id)
+    participant_deidentified_data_folder = None
     if settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
-        if not participant_data_folder.exists():
+        participant_deidentified_data_folder = bids_folder.joinpath(participant_deidentified_id)
+        if not participant_deidentified_data_folder.exists():
             print("WARNING: Unable to find deidentified BIDS data folder for \"" + data_file + "\".")
             issues_during_upload = True
             continue
@@ -280,17 +281,22 @@ for session in sessions_requiring_upload:
             issues_during_upload = True
             continue
 
-        data_file_srcpath = session_dir.joinpath(data_file)
-        summary_file_srcpath = session_dir.joinpath(session["summary_file"])
+        data_file_srcpath = None
+        if (data_file):
+            data_file_srcpath = session_dir.joinpath(data_file)
+        
+        summary_file_srcpath = None
+        if session["summary_file"]:
+            summary_file_srcpath = session_dir.joinpath(session["summary_file"])
 
-        if data_file_srcpath.exists():
+        if (data_file_srcpath is not None) and data_file_srcpath.exists():
             res = box.upload_file(str(data_file_srcpath), folder_id)
             if res==-1:
                 print("WARNING: Unable to upload source data to Box for " + participant_study_id + ", " + participant_session_id + ".")
                 issues_during_upload = True
                 continue
 
-        if summary_file_srcpath.exists():
+        if (summary_file_srcpath is not None)  and summary_file_srcpath.exists():
             res = box.upload_file(str(summary_file_srcpath), folder_id)
             if res==-1:
                 print("WARNING: Unable to upload summary file to Box for " + participant_study_id + ", " + participant_session_id + ".")
@@ -400,7 +406,7 @@ for session in sessions_requiring_upload:
                 continue
 
     # upload deidentified BIDS data
-    if deidentified_data_upload_enabled and settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
+    if deidentified_data_upload_enabled and settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != "") and (participant_deidentified_data_folder != None):
         session_folder_id = box.create_folder(settings_box["deidentified_data_dir_id"],(participant_deidentified_id, participant_session_id))
         if session_folder_id==-1:
             print("WARNING: Unable to create deidentified data folder on Box for " + participant_deidentified_id + ", " + participant_session_id + ".")

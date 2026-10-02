@@ -30,20 +30,20 @@ def send_email(subject, body, recipients, server, port, user, password, attachme
                     print("WARNING: Could not find attachment file \"" + attachment + "\"")
                     continue
 
-            # Guess the content type based on the file's extension.  Encoding
-            # will be ignored, although we should check for simple things like
-            # gzip'd or compressed files.
-            ctype, encoding = mimetypes.guess_type(attachment)
-            if ctype is None or encoding is not None:
-                # No guess could be made, or the file is encoded (compressed), so
-                # use a generic bag-of-bits type.
-                ctype = 'application/octet-stream'
-            maintype, subtype = ctype.split('/', 1)
-            with open(attachment, 'rb') as fp:
-                msg.add_attachment(fp.read(),
-                                maintype=maintype,
-                                subtype=subtype,
-                                filename=os.path.basename(attachment))
+                # Guess the content type based on the file's extension.  Encoding
+                # will be ignored, although we should check for simple things like
+                # gzip'd or compressed files.
+                ctype, encoding = mimetypes.guess_type(attachment)
+                if ctype is None or encoding is not None:
+                    # No guess could be made, or the file is encoded (compressed), so
+                    # use a generic bag-of-bits type.
+                    ctype = 'application/octet-stream'
+                maintype, subtype = ctype.split('/', 1)
+                with open(attachment, 'rb') as fp:
+                    msg.add_attachment(fp.read(),
+                                    maintype=maintype,
+                                    subtype=subtype,
+                                    filename=os.path.basename(attachment))
     except Exception as e:
         print("ERROR: Could not compose e-mail notification:")
         print(e)

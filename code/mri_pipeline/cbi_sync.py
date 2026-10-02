@@ -144,12 +144,29 @@ for data_file in cbi_data["data_files"]:
         print("WARNING: File \"" + data_file + "\" will be skipped.")
         continue
 
+    if (session_info["date"] is None) or (session_info["time"] is None) or (session_info["datetime"] is None):
+                print("WARNING: File name of \"" + data_file + "\" could not be parsed and the file will be skipped.")
+                continue
+
     print("New session data found: \"" + session_info["name"] + "\"")
     
 
     # get participant study ID  and session ID from description
-    participant_info = cbi_parse.get_subject_and_session(session_info, settings_study["subject_identifier_format"], 
-                                                         settings_study["session_identifier_format"])
+    # loop through all compatible formats to identify the first one that fits
+    used_format_idx = -1
+    participant_info = cbi_parse.get_subject_and_session(session_info, settings_study["subject_identifier_formats"][0], 
+                                                                    settings_study["session_identifier_format"]) # initialize to first format
+    for idx in range(0, len(settings_study["subject_identifier_formats"])):
+        participant_info_i = cbi_parse.get_subject_and_session(session_info, settings_study["subject_identifier_formats"][idx], 
+                                                                    settings_study["session_identifier_format"])
+        if participant_info_i == -1:
+            continue
+
+        if participant_info_i["subject_id"]:
+            used_format_idx = idx
+            participant_info = participant_info_i
+            break
+
     if participant_info == -1:
         print("WARNING: File \"" + data_file + "\" will be skipped.")
         continue
@@ -171,9 +188,10 @@ for data_file in cbi_data["data_files"]:
                     deidentified_ids.append(participant["deidentified_id"])
                 deidentified_ids = tuple(deidentified_ids)
 
+                idx = used_format_idx
                 new_deidentified_id = study.generate_deidentified_id(used_ids=deidentified_ids, 
-                                                                    prefix=settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                    digits=settings_study["deidentified_subject_identifier_format"]["desired_digits"])
+                                                                    prefix=settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]+settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"],
+                                                                    digits=settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"])
 
             else:
                  new_deidentified_id = None

@@ -9,18 +9,18 @@ def _init():
     settings = {
         "title": "",
         "description": "",
-        "subject_identifier_format": {
+        "subject_identifier_formats": [{
             "regex": "[mM][0-9][0-9]+",
             "desired_prefix": "sub-",
             "desired_start_str": "M",
             "desired_digits": 3
-        },
+        }],
         "deidentify_data": True,
-        "deidentified_subject_identifier_format": {
+        "deidentified_subject_identifier_formats": [{
             "desired_prefix": "sub-",
             "desired_start_str": "D",
             "desired_digits": 3
-        },
+        }],
         "session_identifier_format": {
             "desired_prefix": "ses-",
             "desired_digits": 2
@@ -50,6 +50,10 @@ def load_from_file(settings_file):
         try:
             with open(settings_file, 'r') as f:
                 settings = json.load(f)
+
+            if not validate_settings(settings):
+                raise ValueError("Invalid file contents.")
+
         except Exception as e:
             print("ERROR: Unable to load settings file:\n")
             print(e)
@@ -65,3 +69,14 @@ def load_from_file(settings_file):
             return success
             
     return settings
+
+def validate_settings(settings):
+
+    result = True
+
+    #make sure the number if subject identifier formats matches the number of deidentified formats
+    if len(settings["subject_identifier_formats"]) != len(settings["deidentified_subject_identifier_formats"]):
+        print("WARNING: Number of entries under 'subject_identifier_formats' needs to match number of entries under 'deidentified_subject_identifier_formats'.")
+        result = False
+
+    return result

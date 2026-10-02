@@ -389,15 +389,15 @@ class data_viewer_ui(QWidget):
         self.load_db()
 
     def pushButton_new_participant_clicked(self):
-        
         # check study config
         if (self._settings_study == None) or (self._settings_study == -1):
             return
 
         # get desired format
-        desired_prefix = self._settings_study["subject_identifier_format"]["desired_prefix"]
-        desired_start_str = self._settings_study["subject_identifier_format"]["desired_start_str"]
-        desired_digits = self._settings_study["subject_identifier_format"]["desired_digits"]
+        idx = 0 # default to the first format
+        desired_prefix = self._settings_study["subject_identifier_formats"][idx]["desired_prefix"]
+        desired_start_str = self._settings_study["subject_identifier_formats"][idx]["desired_start_str"]
+        desired_digits = self._settings_study["subject_identifier_formats"][idx]["desired_digits"]
         id_format = desired_prefix + desired_start_str + "{:0" + str(desired_digits) + "d}"
 
         # ask user for new id
@@ -413,15 +413,16 @@ class data_viewer_ui(QWidget):
             res = QMessageBox.warning(self, "Data Viewer", "This study ID is already used by a different participant.")
             return
 
-        # validate id
-        new_id_is_valid, alternative_new_id = data_viewer_utils.validate_id(new_subject_id, desired_prefix, desired_start_str, desired_digits)
+        # check which format was used for the new ID
+        used_format_idx = -1
+        valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(new_subject_id, self._settings_study["subject_identifier_formats"])
 
-        if not new_id_is_valid:
+        if valid_format_idx == -1: # no valid format found
 
             # make sure alternative ID is unique
             if alternative_new_id in self._all_study_ids:
-                    res = QMessageBox.warning(self,"Data Viewer","Could not generate a unique ID from the input.")
-                    return
+                res = QMessageBox.warning(self,"Data Viewer","Could not generate a unique ID from the input.")
+                return
 
             # ask user what to do
             if alternative_new_id != "":
@@ -432,6 +433,7 @@ class data_viewer_ui(QWidget):
 
                 if res == QMessageBox.Yes:
                     new_subject_id = alternative_new_id
+                    used_format_idx = alternative_format_idx
                     
                 else:
                     return
@@ -439,6 +441,9 @@ class data_viewer_ui(QWidget):
             else:
                 res = QMessageBox.warning(self,"Data Viewer","Invalid subject ID.")
                 return
+
+        else:
+            used_format_idx = valid_format_idx
             
         # ask user to confirm
         res = QMessageBox.question(self,"Data Viewer","Participant " + new_subject_id + " will be added to the database.\nPlease confirm")
@@ -447,11 +452,11 @@ class data_viewer_ui(QWidget):
         
         # generate new deidentified id
         new_deidentified_id = None
-        
+        idx = used_format_idx
         if self._settings_study["deidentify_data"]:
             new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
-                                                                    prefix=self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                    digits=self._settings_study["deidentified_subject_identifier_format"]["desired_digits"])
+                                                                    prefix=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"],
+                                                                    digits=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"])
 
         # add participant to database
 
@@ -463,7 +468,24 @@ class data_viewer_ui(QWidget):
         db = database.db(self._settings_db["db_path"])
         db.n_default_query_attempts = self._settings_db["n_default_query_attempts"] # default number of attempts before a query fails (e.g. transactions could be blocked by another process writing to the database)
 
-        participant_id = db.add_participant(study_id=new_subject_id, 
+        # check if current study is in database
+        current_study = None
+        if (self._settings_study["title"] != None) and (isinstance(self._settings_study["title"], str)) and (self._settings_study["title"] != ""):
+            res = db.get_study(title=self._settings_study["title"])
+            if res == -1: 
+                db.close()
+                return
+            if res is not None:
+                current_study = res
+            else:
+                res = db.add_study(title=self._settings_study["title"], description=self._settings_study["description"])
+                if res == -1: 
+                    db.close()
+                    return
+                current_study = res
+
+        participant_id = db.add_participant(study=current_study,
+                                                study_id=new_subject_id, 
                                                 deidentified_id=new_deidentified_id,
                                                 group_assignment="patient")
         if participant_id == -1:

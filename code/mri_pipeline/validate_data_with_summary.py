@@ -121,7 +121,7 @@ for session in sessions_requiring_validation:
 
     # get all series for this session
     session_series = db.get_mri_series_data(session_id=session_id)
-    if len(session_series) < 1:
+    if (session_series is None) or (session_series == -1) or len(session_series) < 1:
         print("ERROR: No series found in database for \"" + data_file + "\".")
         terminate_after_error()
 
@@ -169,8 +169,14 @@ for session in sessions_requiring_validation:
     # validate each series by looking at summary file and database entries
     converted_series = []
     errors = []
-    max_series_in_summary = max(session_summary["series_info"], key=lambda series_info:series_info["series_number"])["series_number"]
-    max_series_in_db = max(session_series, key=lambda series_info:series_info["series_number"])["series_number"]
+    max_series_in_summary = -1
+    max_series_in_db = -1
+
+    if len(session_summary["series_info"]) > 0:
+        max_series_in_summary = max(session_summary["series_info"], key=lambda series_info:series_info["series_number"])["series_number"]
+        
+    if len(session_series) > 0:
+        max_series_in_db = max(session_series, key=lambda series_info:series_info["series_number"])["series_number"]
     max_series = max(max_series_in_summary, max_series_in_db)
     
     number_files_in_db_total = 0

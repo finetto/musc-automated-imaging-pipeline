@@ -146,6 +146,9 @@ class edit_participant_dialog(QDialog):
             _, current_deidentified_id, current_group_assignment = data_viewer_utils.get_participant_data_for_session(self, db, self._participant_row_id)
             participant_is_editable = data_viewer_utils.get_participant_editable(self, db, self._participant_row_id)
 
+            # normailze current deidentified ID in case it is None
+            current_deidentified_id = current_deidentified_id or ""
+
             # get new deidentified id
             new_deidentified_id = self.ui.lineEdit_deidentified_id.text()
 
@@ -177,6 +180,15 @@ class edit_participant_dialog(QDialog):
         self.close()
 
     def lineEdit_deidentified_id_edited(self):
+
+        # get participant ID - this is necessary to find the correct format of the deidentified ID
+        subject_id = self.ui.label_subject_id.text()
+        used_format_idx = 0 # default to first format
+        if subject_id != "":
+
+            valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(subject_id, self._settings_study["subject_identifier_formats"])
+            if valid_format_idx != -1:
+                used_format_idx = valid_format_idx
         
         # get deidentified id and study id
         new_deidentified_id = self.ui.lineEdit_deidentified_id.text()
@@ -191,6 +203,9 @@ class edit_participant_dialog(QDialog):
 
         # get data of selected participant
         _, current_deidentified_id, group_assignment = data_viewer_utils.get_participant_data_for_session(self, db, self._participant_row_id)
+
+        # normailze current deidentified ID in case it is None
+        current_deidentified_id = current_deidentified_id or ""
 
         # check if participant can be edited (has no converted sessions)
         participant_is_editable = data_viewer_utils.get_participant_editable(self, db, self._participant_row_id)
@@ -219,6 +234,12 @@ class edit_participant_dialog(QDialog):
 
             if res == QMessageBox.Yes:
                 return
+            else:
+                # reset id
+                self.ui.lineEdit_deidentified_id.blockSignals(True)
+                self.ui.lineEdit_deidentified_id.setText(current_deidentified_id)
+                self.ui.lineEdit_deidentified_id.blockSignals(False)
+                return
 
         # make sure ID is unique
         if new_deidentified_id in self._all_deidentified_ids:
@@ -232,9 +253,10 @@ class edit_participant_dialog(QDialog):
             return
         
         # make sure ID conforms to specified standard. Otherwise, alert user
-        desired_prefix = self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]
-        desired_start_str = self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"]
-        desired_digits = self._settings_study["deidentified_subject_identifier_format"]["desired_digits"]
+        idx = used_format_idx
+        desired_prefix = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]
+        desired_start_str = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"]
+        desired_digits = self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"]
         
         new_id_is_valid, alternative_new_id = data_viewer_utils.validate_id(new_deidentified_id, desired_prefix, desired_start_str, desired_digits)
 
@@ -275,11 +297,20 @@ class edit_participant_dialog(QDialog):
         
 
     def pushButton_generate_deidentifdied_id_clicked(self):
+
+        # get participant ID - this is necessary to find the correct format of the deidentified ID
+        subject_id = self.ui.label_subject_id.text()
+        used_format_idx = 0 # default to first format
+        if subject_id != "":
+            valid_format_idx, alternative_format_idx, alternative_new_id = data_viewer_utils.get_used_format(subject_id, self._settings_study["subject_identifier_formats"])
+            if valid_format_idx != -1:
+                used_format_idx = valid_format_idx
         
         # generate new deidentified id
+        idx = used_format_idx
         new_deidentified_id = study.generate_deidentified_id(used_ids=self._all_deidentified_ids, 
-                                                                 prefix=self._settings_study["deidentified_subject_identifier_format"]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_format"]["desired_start_str"],
-                                                                 digits=self._settings_study["deidentified_subject_identifier_format"]["desired_digits"])
+                                                                 prefix=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_prefix"]+self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_start_str"],
+                                                                 digits=self._settings_study["deidentified_subject_identifier_formats"][idx]["desired_digits"])
         
         # set new id
         self.ui.lineEdit_deidentified_id.blockSignals(True)

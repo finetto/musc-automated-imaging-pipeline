@@ -143,7 +143,7 @@ for session in sessions_requiring_conversion:
         print("ERROR: Unable to get series information for \"" + data_file + "\".")
         terminate_after_error()
     
-    if len(session_series)<1:
+    if (session_series is None) or len(session_series)<1:
         print("WARNING: No series found for \"" + data_file + "\".")
         continue
 
@@ -219,8 +219,10 @@ for session in sessions_requiring_conversion:
 
     # deidentify data (if possible)
     participant_deidentified_id = participant["deidentified_id"]
-    participant_deidentified_data_folder = bids_folder.joinpath(participant_deidentified_id)
+    participant_deidentified_data_folder = None
     if settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
+
+        participant_deidentified_data_folder = bids_folder.joinpath(participant_deidentified_id)
         
         # rename files and folders
         mri_proc_utils.deidentify_files_and_folders(str(participant_data_folder),
@@ -289,7 +291,7 @@ for session in sessions_requiring_conversion:
         shutil.copytree(session_srcdir, session_dstdir)
 
     # copy deidentified BIDS data
-    if settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != ""):
+    if settings_study["deidentify_data"] and (participant_deidentified_id != None) and (participant_deidentified_id != "") and (participant_deidentified_data_folder != None):
         data_dir = Path(settings_processing["mri"]["deidentified_data_dir"])
         if not data_dir.exists():
             os.mkdir(data_dir)

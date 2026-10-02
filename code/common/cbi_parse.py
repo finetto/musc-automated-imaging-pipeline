@@ -35,8 +35,11 @@ def get_timestamp_and_description(filename):
     # generate datetime
     session_datetime = None
     if (session_date != None) and (session_time != None):
-        dt_string = " ".join((session_date, session_time))
-        session_datetime = datetime.strptime(dt_string, "%Y/%m/%d %H:%M:%S")
+        try:
+            dt_string = " ".join((session_date, session_time))
+            session_datetime = datetime.strptime(dt_string, "%Y/%m/%d %H:%M:%S")
+        except Exception as e:
+            session_datetime = None
 
     return {"name": session_name, "date": session_date, "time": session_time, "datetime": session_datetime, "description": session_description}
 
@@ -67,6 +70,7 @@ def get_subject_and_session(session_info, subject_format, session_format):
         if subject_prefix in session_description:
             subject_prefix_in_description = True
             subject_prefix_start_index = session_description.find(subject_prefix)
+            break
 
     session_prefix_in_description = False
     session_prefix_start_index = None
@@ -74,6 +78,7 @@ def get_subject_and_session(session_info, subject_format, session_format):
         if session_prefix in session_description:
             session_prefix_in_description = True
             session_prefix_start_index = session_description.find(session_prefix)
+            break
 
     # lets consider the different cases where subject prefix and/or session prefix are present
     subject_id_string = None

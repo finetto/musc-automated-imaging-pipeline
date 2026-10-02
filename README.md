@@ -113,18 +113,18 @@ The study configuration file contains settings that determine the format of the 
 {
     "title": "DEMO",
     "description": "DEMO study",
-    "subject_identifier_format": {
+    "subject_identifier_formats": [{
         "regex": "[mM][0-9][0-9]+",
         "desired_prefix": "sub-",
         "desired_start_str": "M",
         "desired_digits": 3
-    },
+    }],
     "deidentify_data": true,
-    "deidentified_subject_identifier_format": {
+    "deidentified_subject_identifier_formats": [{
         "desired_prefix": "sub-",
         "desired_start_str": "D",
         "desired_digits": 3
-    },
+    }],
     "session_identifier_format": {
         "desired_prefix": "ses-",
         "desired_digits": 2
@@ -134,13 +134,14 @@ The study configuration file contains settings that determine the format of the 
 
 `title` is the short title of the study\
 `description` is a more detailed description of the study\ 
-`subject_identifier_format`->`regex` is a regular expression used to find the subject ID in the raw data file names\
-`subject_identifier_format`->`desired_prefix` is the desired prefix that will be added to the subject ID\
-`subject_identifier_format`->`desired_start_str` is a string that will be added between the prefix and the subject number\
-`subject_identifier_format`->`desired_digits` is the number of desired digits in the subject number.\
+`subject_identifier_formats` is a list of one or more accepted study ID formats\
+`subject_identifier_formats`->`regex` is a regular expression used to find the subject ID in the raw data file names\
+`subject_identifier_formats`->`desired_prefix` is the desired prefix that will be added to the subject ID\
+`subject_identifier_formats`->`desired_start_str` is a string that will be added between the prefix and the subject number\
+`subject_identifier_formats`->`desired_digits` is the number of desired digits in the subject number.\
 \
 `deidentify_data` determines if data will be de-identified (true) or not (false)\
-`deidentified_subject_identifier_format` determines how the de-identified subject ID will be formatted. The settings are equivalent to those available under `subject_identifier_format`\
+`deidentified_subject_identifier_formats` determines how the de-identified subject ID will be formatted. The settings are equivalent to those available under `subject_identifier_formats`\
 \
 `session_identifier_format`->`desired_prefix` is the desired prefix that will be added to the session ID\
 `session_identifier_format`->`desired_digits` is the number of desired digits in the session number.

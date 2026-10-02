@@ -184,26 +184,29 @@ elif n_reminder_notifications>0:
 
 # send notification
 if notification_necessary:
-    notifications.send_email(settings_notification["mri_data_validation"]["subject"],
+    emailResult = notifications.send_email(settings_notification["mri_data_validation"]["subject"],
                         full_notification_text, 
                         settings_notification["mri_data_validation"]["recipients"],
                         settings_notification["mail_server"]["address"],
                         settings_notification["mail_server"]["port"],
                         settings_notification["mail_server"]["user"],
                         settings_notification["mail_server"]["password"])
-    
-    # Update DB by setting the notification time
-    notification_sent_dt = datetime.now().timestamp()
 
-    for session in sessions_receiving_notification:
-        session_id = session["id"]
+    if emailResult is True:
+        # Update DB by setting the notification time
+        notification_sent_dt = datetime.now().timestamp()
 
-        res = db.update_mri_session(session_id, notification_sent_dt=notification_sent_dt)
-        if res == -1: terminate_after_error()
-    db.commit()
+        for session in sessions_receiving_notification:
+            session_id = session["id"]
 
-    print("Notifications sent:\n")
-    print(full_notification_text + "\n")
+            res = db.update_mri_session(session_id, notification_sent_dt=notification_sent_dt)
+            if res == -1: terminate_after_error()
+        db.commit()
+
+        print("Notifications sent:\n")
+        print(full_notification_text + "\n")
+    else:
+        print("Error when sending notification e-mail. Will try again.")
 
 else:
     print("No notifications necessary.")
